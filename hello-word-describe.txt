@@ -1,0 +1,46 @@
+Name:         hello-world
+Namespace:    default
+Priority:     0
+Node:         minikube/10.0.2.15
+Start Time:   Sat, 22 Jun 2019 14:36:39 +0530
+Labels:       app=hello-world
+Annotations:  <none>
+Status:       Running
+IP:           172.17.0.5
+Containers:
+  server:
+    Container ID:   docker://8432c4457d212efa8389b78838cddb3037a44f4ae1c21f0342b68d93c6823fe9
+    Image:          nginx:latest
+    Image ID:       docker-pullable://nginx@sha256:bdbf36b7f1f77ffe7bd2a32e59235dff6ecf131e3b6b5b96061c652f30685f3a
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Sat, 22 Jun 2019 14:36:58 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-ll6lh (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-ll6lh:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-ll6lh
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  6m8s   default-scheduler  Successfully assigned default/hello-world to minikube
+  Normal  Pulling    6m7s   kubelet, minikube  Pulling image "nginx:latest"
+  Normal  Pulled     5m49s  kubelet, minikube  Successfully pulled image "nginx:latest"
+  Normal  Created    5m49s  kubelet, minikube  Created container server
+  Normal  Started    5m49s  kubelet, minikube  Started container server

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-support-tier
+  labels: 
+    app: example
+    tier: support
+spec: 
+  containers:
+    - name: counter
+      image: "slashdeploy/microservice-example:counter-v1"
+      env:
+        - name: API_URL
+          value: "redis://$(EXAMPLE_APP_TIER_SERVICE_HOST):$(EXAMPLE_APP_TIER_SERVICE_PORT_SERVER)"
+    - name: poller
+      image: "slashdeploy/microservice-example:poller-v1"
+      env:
+        - name: API_URL
+          value: "redis://$(EXAMPLE_APP_TIER_SERVICE_HOST):$(EXAMPLE_APP_TIER_SERVICE_PORT_SERVER)"

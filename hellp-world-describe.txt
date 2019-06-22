@@ -1,0 +1,48 @@
+Name:           hellp-minikube-776b99bd5b-hgccs
+Namespace:      default
+Priority:       0
+Node:           minikube/10.0.2.15
+Start Time:     Sat, 22 Jun 2019 14:22:09 +0530
+Labels:         pod-template-hash=776b99bd5b
+                run=hellp-minikube
+Annotations:    <none>
+Status:         Running
+IP:             172.17.0.4
+Controlled By:  ReplicaSet/hellp-minikube-776b99bd5b
+Containers:
+  hellp-minikube:
+    Container ID:   docker://57ad0c2048f9bf09ce34baa4cbca42d2537b431b82fad206e9c08f8ad8ac0500
+    Image:          k8s.gcr.io/echoserver:1.10
+    Image ID:       docker-pullable://k8s.gcr.io/echoserver@sha256:cb5c1bddd1b5665e1867a7fa1b5fa843a47ee433bbb75d4293888b71def53229
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 22 Jun 2019 14:22:27 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-ll6lh (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-ll6lh:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-ll6lh
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  20m   default-scheduler  Successfully assigned default/hellp-minikube-776b99bd5b-hgccs to minikube
+  Normal  Pulling    20m   kubelet, minikube  Pulling image "k8s.gcr.io/echoserver:1.10"
+  Normal  Pulled     20m   kubelet, minikube  Successfully pulled image "k8s.gcr.io/echoserver:1.10"
+  Normal  Created    20m   kubelet, minikube  Created container hellp-minikube
+  Normal  Started    20m   kubelet, minikube  Started container hellp-minikube

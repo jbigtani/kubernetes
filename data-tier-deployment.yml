@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata: 
+  name: example-data-tier
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: example-data-tier
+      labels: 
+        app: example
+        tier: data
+    spec: 
+      containers:
+        - name: redis
+          image: "redis:latest"
+          imagePullPolicy: IfNotPresent
+          ports: 
+            - containerPort: 6379
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10

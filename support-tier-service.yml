@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-app-tier
+spec: 
+  selector:
+    app: example
+    tier: app
+  ports:
+    - name: server
+      protocol: TCP
+      port: 8080

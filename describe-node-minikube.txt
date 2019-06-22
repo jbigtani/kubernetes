@@ -1,0 +1,69 @@
+Name:               minikube
+Roles:              master
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=minikube
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/master=
+Annotations:        kubeadm.alpha.kubernetes.io/cri-socket: /var/run/dockershim.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Sat, 22 Jun 2019 13:59:21 +0530
+Taints:             <none>
+Unschedulable:      false
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Sat, 22 Jun 2019 15:30:21 +0530   Sat, 22 Jun 2019 13:59:14 +0530   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Sat, 22 Jun 2019 15:30:21 +0530   Sat, 22 Jun 2019 13:59:14 +0530   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Sat, 22 Jun 2019 15:30:21 +0530   Sat, 22 Jun 2019 13:59:14 +0530   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            True    Sat, 22 Jun 2019 15:30:21 +0530   Sat, 22 Jun 2019 13:59:14 +0530   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.0.2.15
+  Hostname:    minikube
+Capacity:
+ cpu:                2
+ ephemeral-storage:  17784772Ki
+ hugepages-2Mi:      0
+ memory:             2038624Ki
+ pods:               110
+Allocatable:
+ cpu:                2
+ ephemeral-storage:  16390445849
+ hugepages-2Mi:      0
+ memory:             1936224Ki
+ pods:               110
+System Info:
+ Machine ID:                 d329734648114940bc5a057a2da5dc25
+ System UUID:                01FAA857-05B2-42BD-A2F3-D36B5B82407A
+ Boot ID:                    40ae7d62-38c2-4698-9f01-65a05318c989
+ Kernel Version:             4.15.0
+ OS Image:                   Buildroot 2018.05
+ Operating System:           linux
+ Architecture:               amd64
+ Container Runtime Version:  docker://18.9.6
+ Kubelet Version:            v1.14.3
+ Kube-Proxy Version:         v1.14.3
+Non-terminated Pods:         (11 in total)
+  Namespace                  Name                                CPU Requests  CPU Limits  Memory Requests  Memory Limits  AGE
+  ---------                  ----                                ------------  ----------  ---------------  -------------  ---
+  default                    hello-world                         0 (0%)        0 (0%)      0 (0%)           0 (0%)         40m
+  default                    hellp-minikube-776b99bd5b-hgccs     0 (0%)        0 (0%)      0 (0%)           0 (0%)         68m
+  kube-system                coredns-fb8b8dccf-7bnxj             100m (5%)     0 (0%)      70Mi (3%)        170Mi (8%)     90m
+  kube-system                coredns-fb8b8dccf-kz4hp             100m (5%)     0 (0%)      70Mi (3%)        170Mi (8%)     90m
+  kube-system                etcd-minikube                       0 (0%)        0 (0%)      0 (0%)           0 (0%)         89m
+  kube-system                kube-addon-manager-minikube         5m (0%)       0 (0%)      50Mi (2%)        0 (0%)         89m
+  kube-system                kube-apiserver-minikube             250m (12%)    0 (0%)      0 (0%)           0 (0%)         89m
+  kube-system                kube-controller-manager-minikube    200m (10%)    0 (0%)      0 (0%)           0 (0%)         90m
+  kube-system                kube-proxy-kqf9x                    0 (0%)        0 (0%)      0 (0%)           0 (0%)         90m
+  kube-system                kube-scheduler-minikube             100m (5%)     0 (0%)      0 (0%)           0 (0%)         89m
+  kube-system                storage-provisioner                 0 (0%)        0 (0%)      0 (0%)           0 (0%)         90m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests     Limits
+  --------           --------     ------
+  cpu                755m (37%)   0 (0%)
+  memory             190Mi (10%)  340Mi (17%)
+  ephemeral-storage  0 (0%)       0 (0%)
+Events:              <none>

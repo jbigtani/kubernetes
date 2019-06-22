@@ -1,0 +1,96 @@
+Name:         example
+Namespace:    lesson201
+Priority:     0
+Node:         minikube/10.0.2.15
+Start Time:   Sat, 22 Jun 2019 15:55:34 +0530
+Labels:       name=example
+Annotations:  <none>
+Status:       Running
+IP:           172.17.0.6
+Containers:
+  redis:
+    Container ID:   docker://c2904b4c3277f45248aea8cd19f2e374b348cbdb158b3d5cef59e44f6520eb4d
+    Image:          redis:latest
+    Image ID:       docker-pullable://redis@sha256:ca2d9251c2818df48c6598e01a5bdeab46040dc7ab236abe075d7c7343465177
+    Port:           6379/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 22 Jun 2019 15:55:35 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-sf74w (ro)
+  server:
+    Container ID:   docker://e978c3959ea18e5c9bc7ef60addb21d5926d316fa5c3379df8ba636d7227228c
+    Image:          slashdeploy/microservice-example:server-v1
+    Image ID:       docker-pullable://slashdeploy/microservice-example@sha256:602cd4835b09b6ec9fb6c278916e3c1a34ed12965cfc0bebde7295110141d1ef
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 22 Jun 2019 15:55:36 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:
+      REDIS_URL:  redis://localhost:6379
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-sf74w (ro)
+  counter:
+    Container ID:   docker://d6e227c901a42715d553cac8926a76d53a7e84170d550a60ce8d82e47bf0ffc8
+    Image:          slashdeploy/microservice-example:counter-v1
+    Image ID:       docker-pullable://slashdeploy/microservice-example@sha256:d8eeb8a11da056400c0e01c95025053e291b5bd973881430f9788c449d8457e8
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Sat, 22 Jun 2019 15:55:36 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:
+      API_URL:  http://localhost:8080
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-sf74w (ro)
+  poller:
+    Container ID:   docker://f85116ced19ee1a041927f9675db4ffd3de703ed4752552064aef5f04edfd5e0
+    Image:          slashdeploy/microservice-example:poller-v1
+    Image ID:       docker-pullable://slashdeploy/microservice-example@sha256:aaa48e19ac4a3a6e21c07fb1ce0bc5688e1279fef912a9bf85258f77f78bd82f
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Sat, 22 Jun 2019 15:55:36 +0530
+    Ready:          True
+    Restart Count:  0
+    Environment:
+      API_URL:  http://localhost:8080
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-sf74w (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-sf74w:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-sf74w
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  47s   default-scheduler  Successfully assigned lesson201/example to minikube
+  Normal  Pulled     46s   kubelet, minikube  Container image "redis:latest" already present on machine
+  Normal  Created    46s   kubelet, minikube  Created container redis
+  Normal  Started    46s   kubelet, minikube  Started container redis
+  Normal  Pulled     46s   kubelet, minikube  Container image "slashdeploy/microservice-example:server-v1" already present on machine
+  Normal  Created    46s   kubelet, minikube  Created container server
+  Normal  Started    45s   kubelet, minikube  Started container server
+  Normal  Pulled     45s   kubelet, minikube  Container image "slashdeploy/microservice-example:counter-v1" already present on machine
+  Normal  Created    45s   kubelet, minikube  Created container counter
+  Normal  Started    45s   kubelet, minikube  Started container counter
+  Normal  Pulled     45s   kubelet, minikube  Container image "slashdeploy/microservice-example:poller-v1" already present on machine
+  Normal  Created    45s   kubelet, minikube  Created container poller
+  Normal  Started    45s   kubelet, minikube  Started container poller

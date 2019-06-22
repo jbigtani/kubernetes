@@ -1,0 +1,14 @@
+Name:                     hello-world
+Namespace:                default
+Labels:                   app=hello-world
+Annotations:              <none>
+Selector:                 app=hello-world
+Type:                     NodePort
+IP:                       10.109.4.3
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+NodePort:                 <unset>  31855/TCP
+Endpoints:                172.17.0.5:80
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Events:                   <none>
