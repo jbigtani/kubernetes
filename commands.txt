@@ -1,0 +1,37 @@
+--lesson203
+
+kubectl create -f namespace-lesson203.yml
+kubectl create -f data-tier-service.yml --namespace lesson203
+kubectl create -f data-tier-deployment.yml --namespace lesson203
+kubectl create -f app-tier-service.yml --namespace lesson203
+kubectl create -f app-tier-deployment.yml --namespace lesson203
+kubectl get deployment --namespace lesson203
+kubectl get pods --namespace lesson203
+kubectl create -f app-tier-deployment.yml --namespace lesson203
+kubectl get deployments --namespace lesson203
+
+--lesson202
+kubectl get pods --namespace lesson202
+kubectl scale deployment example-app-tier --replicas 2 --namespace lesson202
+kubectl get deployments --namespace lesson202
+kubectl top nodes
+kubectl top pods
+kubectl apply -f app-tier-deployment.yml --namespace lesson202
+kubectl autoscale deployment example-app-tier --min 1 --max 2 --cpu-percent 50 --namespace lesson202
+kubectl scale deployment example-app-tier --replicas 2 --namespace lesson202
+kubectl get pods --namespace lesson202
+kubectl get hpa --namespace lesson202
+kubectl edit hpa --namespace lesson202
+kubectl delete hpa --namespace lesson202
+kubectl delete hpa example-app-tier --namespace lesson202
+kubectl edit deployment example-app-tier --namespace lesson202
+kubectl rollout status deployment example-app-tier --namespace lesson202
+kubectl rollout history deployment example-app-tier --namespace lesson202
+kubectl rollout undo deployment example-app-tier --namespace lesson202
+
+
+--minikube
+minikube dashboard
+minikube addons list
+minikube addons disable dashboard
+minikube status
