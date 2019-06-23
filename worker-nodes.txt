@@ -5,3 +5,38 @@ kube-proxy: Enables the Kubernetes service abstraction by maintaining network ru
 Docker: Runs containers
 
 Setting up multiple worker nodes follows a similar process with additional steps for installing an addon to set up a pod network.
+
+2. In the Kubernetes common config file, change the KUBE_MASTER API server address to use the master's DNS name:
+
+sudo sed -i 's/\(KUBE_MASTER.*\)127.0.0.1\(.*\)/\1ca-lab-vm\2/g' /etc/kubernetes/config
+This is the same modification made to the master node config file. All servers in a cluster should have the same config file.
+
+ 
+
+3. Enter the following commands to configure the kubelet:
+
+# Listen on all interfaces
+sudo sed -i 's/\(KUBELET_ADDRESS.*\)127.0.0.1\(.*\)/\10.0.0.0\2/g' /etc/kubernetes/kubelet
+# Use the DNS hostname for the node
+sudo sed -i 's/\(KUBELET_HOSTNAME.*\)127.0.0.1\(.*\)/\1k8s-node\2/g' /etc/kubernetes/kubelet
+# Use the master's DNS name for the API server address
+sudo sed -i 's/\(KUBELET_API_SERVER.*\)127.0.0.1\(.*\)/\1ca-lab-vm\2/g' /etc/kubernetes/kubelet
+ 
+
+4. Start, enable on reboot, and show the status of the required worker node services:
+
+for SERVICE in kube-proxy kubelet docker; do 
+    sudo systemctl restart $SERVICE
+    sudo systemctl enable $SERVICE
+    sudo systemctl status $SERVICE 
+done
+You should see a green active (running) status listed for each service:
+
+alt
+
+ 
+
+5. Return to your ca-lab-vm SSH session, and re-run the following command:
+
+kubectl get nodes
+This time, the STATUS will show as Ready:
