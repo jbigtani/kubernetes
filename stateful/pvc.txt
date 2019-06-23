@@ -1,0 +1,16 @@
+Name:          data-mysql-2
+Namespace:     default
+StorageClass:  general
+Status:        Bound
+Volume:        pvc-d805226d-959d-11e9-99e1-0641495c858a
+Labels:        app=mysql
+Annotations:   pv.kubernetes.io/bind-completed=yes
+               pv.kubernetes.io/bound-by-controller=yes
+               volume.beta.kubernetes.io/storage-provisioner=kubernetes.io/aws-ebs
+Finalizers:    []
+Capacity:      2Gi
+Access Modes:  RWO
+Events:
+  Type    Reason                 Age   From                         Message
+  ----    ------                 ----  ----                         -------
+  Normal  ProvisioningSucceeded  6m    persistentvolume-controller  Successfully provisioned volume pvc-d805226d-959d-11e9-99e1-0641495c858a using kubernetes.io/aws-ebs

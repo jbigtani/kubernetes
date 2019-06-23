@@ -1,0 +1,172 @@
+Monitoring Your Kubernetes Cluster Using Kubernetes Dashboard
+
+Introduction
+Earlier you saw that the Kubernetes Dashboard pod is running in the kube-system namespace. The Kubernetes Dashboard provides a website for monitoring and managing your Kubernetes cluster. In this Lab Step you will familiarize yourself with the Kubernetes Dashboard and also demonstrate how to use a proxy to connect to the master node. To gain full access to the dashboard you will first bind the cluster-admin role to the dashboard's service account.
+
+ 
+
+Instructions
+1. In the SSH shell that is connected to the master node, enter the following to create 
+
+cat << EOF > dashboard-admin.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-dashboard
+  labels:
+    k8s-app: kubernetes-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+EOF
+The roleRef reference the cluster-admin role and the subjects to bind the role to is the kubernetes-dashboard ServiceAccount.
+
+ 
+
+2. Enter the following to create the cluster role binding:
+
+kubectl create -f dashboard-admin.yaml
+ 
+
+3. Enter exit to close the connection and return to the bastion host shell.
+
+ 
+
+4. Update the host's package indexes:
+
+sudo apt-get update
+ 
+
+5. Install an updated version of snap:
+
+sudo apt-get install -y --only-upgrade snapd
+Snaps are universal Linux packages. You will use snap to install kubectl on the bastion host.
+
+ 
+
+6. Enter the following to install kubectl:
+
+sudo snap install kubectl --classic
+ 
+
+7. Secure copy the kubectl config from the master node using SSH agent forwarding:
+
+scp -o "ForwardAgent yes" ubuntu@<MASTER_PRIVATE_IP>:~/kubeconfig ./kubeconfig
+Where you replace <MASTER_PRIVATE_IP> with the private IP of the k8s-master instance.
+
+ 
+
+8. Run a Kubernetes proxy server on the bastion in order to proxy requests to the master from outside the private subnet:
+
+sudo kubectl --kubeconfig=./kubeconfig --address='0.0.0.0' --accept-hosts='^*$' proxy -p 80
+alt
+
+The --address and --accept-hosts options allow connections from anywhere. This is only acceptable for demonstration purposes.
+
+ 
+
+9. Return to the EC2 Console and copy the Public IP of the bastion-host instance.
+
+ 
+
+10. Open a new browser tab and paste the public IP of the bastion host into the address bar.
+
+A list of all the supported URL paths for the proxy server are shown:
+
+alt
+
+Near the bottom is "/ui", which is for the Kubernetes Dashboard.
+
+ 
+
+11. Append /ui onto the end of the public IP in the address bar to open the Kubernetes Dashboard for the cluster:
+
+alt
+
+The dashboard asks you for a method to authenticate, but because you bound the cluster-admin role to the dashboard's service account, the dashboard has permission to access all the Kubernetes APIs on its own.
+
+ 
+
+12. Click SKIP to reveal the the dashboard:
+
+alt
+
+From the dashboard, you can get the same information found using kubectl commands but with an easy to navigate interface.
+
+ 
+
+10. Navigate to Workloads > Stateful Sets > mysql:
+
+alt
+
+The CPU and Memory columns are empty. You need to install the Heapster monitoring plugin in your Kubernetes cluster to be able to display charts for CPU and memory.
+
+ 
+
+11. Click on the logs icon for mysql-2 in the second last column of the Pods table:
+
+alt
+
+ 
+
+12. In the Logs view, you can view the container logs for each container in the pod by selecting the container name in the drop-down menu:
+
+alt
+
+Take a moment to inspect the logs for both containers.
+
+ 
+
+13. Close the browser tab opened to the logs view.
+
+ 
+
+14. Click on the Scale button near the top-right corner of the mysql Stateful Sets view:
+
+alt
+
+ 
+
+15. In the Scale a statefulset dialog, enter the following value and click OK:
+
+Desired number of pods: 3
+ 
+
+16. Refresh the browser page every 10 seconds and observe the mysql-4 pod is removed first, followed by the mysql-3 pod.
+
+Pods are removed in the reverse order that they are created in StatefulSets.
+
+ 
+
+17. Navigate to Cluster > Persistent Volumes:
+
+alt
+
+Notice that there are five PVs. PVs remain after the pods are deleted in a scale down event. If you want to delete PVs after scaling down, you have to manually perform the operation.
+
+ 
+
+18. Click the three dots in the last column of the table for the PV associated with Claim default/data-mysql-4 (it is the first row) and click Delete.
+
+ 
+
+19. In the confirmation dialog, click Delete.
+
+ 
+
+20. Navigate to Config and Storage > Persistent Volume Claims and click on data-mysql-4.
+
+The Status is Lost after deleting the PV.
+
+ 
+
+21. Delete the PVC by clicking Delete in the upper-right corner.
+
+ 
+
+22. Click Delete in the confirmation dialog.

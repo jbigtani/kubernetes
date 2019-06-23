@@ -1,0 +1,89 @@
+There are a few options for managing the cluster:
+
+SSH into the master node through the bastion host and use kubectl on the master. SSH agent forwarding makes this easy to accomplish.
+Run kubectl on the bastion host, and configure it to connect to the API server on the master
+Use proxy mode of kubectl to access the API server through the bastion host from clients outside of the VPC
+Access the Kubernetes API server through a load balancer
+Initially, you will use SSH agent forwarding to connect to the master in this Lab. With SSH agent forwarding, you can use your local SSH keys to connect to the master from the bastion instead of copying your key to the bastion and connecting with the copied key. Later on, you will set up proxy mode. You need to connect to the master to copy the kubectl configuration file to the node you want to set up the proxy. Using proxy mode is preferred to avoid unintended configuration changes on the master host server.
+
+Complete the following steps to use PuTTY to create an SSH connection with agent forwarding enabled:
+
+a. Start Pageant. Note that Pageant runs as a Windows service. It should be displayed in your Windows task tray, but could be "hidden". Hence, you may need to "show hidden icons". Pageant is displayed as a terminal with a hat on it:
+
+b. Right-click the Pageant icon and select Add Key. Browse to the PPK key file you downloaded earlier. You can close the Pageant Key List window once the key is added.
+
+c. Open PuTTY and insert the IPv4 public IP address in the Host Name (or IP address) field:
+
+d. Navigate to the Connection > SSH > Auth section. Select the Allow agent forwarding and click Open:
+
+ssh <PrivateIP> 10.0.___.___ 
+
+4. Enable autocompletion for the Kubernetes cluster manager utility kubectl:
+
+source <(kubectl completion bash)
+With completions, you can press tab twice to get a list of valid ways to complete any of the kubectl commands.
+
+5. List all of the nodes in the cluster:
+
+kubectl get nodes
+alt
+
+Observe that the master node's private IP is included in one of internal DNS names in the list of nodes. There are three other nodes that are a part of the Auto Scaling group.
+
+ 
+
+6. Enter the following command to describe the master node:
+
+kubectl describe nodes -l node-role.kubernetes.io/master | more
+The output is piped into the more command to be displayed one page at a time by pressing the space bar.
+
+The describe command uses the node-role.kubernetes.io/master label to select only nodes that have that label present, of which there is only one. In the output, you will see a Taints section with a value of node-role.kubernetes.io/master:NoSchedule. Taints cause the node to repel pods unless the pod declares a toleration of the taint. For the NoSchedule case, this means no pods will be assigned to the master unless you declare a toleration of node-role.kubernetes.io/master when creating the pod. 
+
+ 
+
+7. Type the following incomplete command and press tab twice to get the possible completions:
+
+kubectl get pods --namespace=
+The output will show the known namespaces in the cluster:
+
+alt
+
+The default namespace is used when you schedule pods without declaring a specific namespace. The kube-system namespace is where pods essential to the operation of the Kubernetes cluster live.
+
+ 
+
+8. List all of the pods in the kube-system namespace:
+
+kubectl get pods --namespace=kube-system
+The output will look similar to the following:
+
+ubuntu@ip-10-0-9-84:~$ kubectl get pods --namespace=kube-system
+NAME                                                              READY     STATUS    RESTARTS   AGE
+calico-etcd-h5hhp                                                 1/1       Running   0          26m
+calico-kube-controllers-d669cc78f-qsvkz                           1/1       Running   0          26m
+calico-node-2bv2l                                                 2/2       Running   0          24m
+calico-node-5f6jq                                                 2/2       Running   1          24m
+calico-node-s5s46                                                 2/2       Running   1          26m
+calico-node-t6kk7                                                 2/2       Running   1          24m
+etcd-ip-10-0-9-84.us-west-2.compute.internal                      1/1       Running   0          25m
+kube-apiserver-ip-10-0-9-84.us-west-2.compute.internal            1/1       Running   0          25m
+kube-controller-manager-ip-10-0-9-84.us-west-2.compute.internal   1/1       Running   0          26m
+kube-dns-6f4fd4bdf-pk69r                                          3/3       Running   0          26m
+kube-proxy-6cnk6                                                  1/1       Running   0          24m
+kube-proxy-87tjs                                                  1/1       Running   0          24m
+kube-proxy-g44gl                                                  1/1       Running   0          24m
+kube-proxy-s6hwz                                                  1/1       Running   0          26m
+kube-scheduler-ip-10-0-9-84.us-west-2.compute.internal            1/1       Running   0          25m
+kubernetes-dashboard-6658cd6658-hrhbp                             1/1       Running   0          26m
+
+
+All of the components of the cluster are running in pods in the kube-system namespace:
+
+calico: The container network used to connect each node to every other node in the cluster. Calico also supports network policy. Calico is one of many possible container networks that can be used by Kubernetes.
+etcd: The primary data store of all cluster state
+kube-apiserver: The REST API server for managing the Kubernetes cluster
+kube-controller-manager: Manager of all of the controllers in the cluster that monitor and change the cluster state when necessary
+kube-dns: Provides DNS services to nodes in the cluster
+kube-proxy: Network proxy that runs on each node
+kubernetes-dashboard: Monitoring and graphical interface for managing the cluster. You will use this in a later Lab Step.
+ 

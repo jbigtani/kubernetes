@@ -1,0 +1,20 @@
+Name:            pvc-d805226d-959d-11e9-99e1-0641495c858a
+Labels:          failure-domain.beta.kubernetes.io/region=us-west-2
+                 failure-domain.beta.kubernetes.io/zone=us-west-2a
+Annotations:     kubernetes.io/createdby=aws-ebs-dynamic-provisioner
+                 pv.kubernetes.io/bound-by-controller=yes
+                 pv.kubernetes.io/provisioned-by=kubernetes.io/aws-ebs
+StorageClass:    general
+Status:          Bound
+Claim:           default/data-mysql-2
+Reclaim Policy:  Delete
+Access Modes:    RWO
+Capacity:        2Gi
+Message:
+Source:
+    Type:       AWSElasticBlockStore (a Persistent Disk resource in AWS)
+    VolumeID:   aws://us-west-2a/vol-018b342c8069f581f
+    FSType:     ext4
+    Partition:  0
+    ReadOnly:   false
+Events:         <none>
