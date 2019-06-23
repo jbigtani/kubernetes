@@ -1,0 +1,162 @@
+The master node in Kubernetes provides the cluster's control plane. The master node makes global decisions for the cluster, such as scheduling and taking action to meet service replication requirements. The master node is made up of several components:
+
+kube-apiserver: Exposes the Kubernetes API
+etcd: Durable, consistent, persistent storage of Kubernetes objects that describe the state of your cluster
+kube-controller-manager: Runs controllers responsible for routine cluster tasks, such as detecting when nodes go down
+kube-scheduler: Selects worker nodes to assign pods to based on resource requirements and other constraints. Pods are logically grouped containers.
+Addons: Provide additional cluster features, such as DNS, and user interface
+
+Step takes you through the process of configuring a Red Hat Enterprise Linux 7 VM as a Kubernetes master node.
+1. sudo yum install -y kubernetes
+
+Installs
+ docker.x86_64 2:1.13.1-96.gitb2f74b2.el7
+  docker-client.x86_64 2:1.13.1-96.gitb2f74b2.el7
+  docker-common.x86_64 2:1.13.1-96.gitb2f74b2.el7
+  docker-rhel-push-plugin.x86_64 2:1.13.1-96.gitb2f74b2.el7
+  kubernetes-client.x86_64 0:1.5.2-0.7.git269f928.el7
+  kubernetes-master.x86_64 0:1.5.2-0.7.git269f928.el7
+  kubernetes-node.x86_64 0:1.5.2-0.7.git269f928.el7
+  kubernetes.x86_64 0:1.5.2-0.7.git269f928.el7
+
+
+2. sudo yum install -y etcd
+3. ls /etc/kubernetes
+apiserver, controller-manager, and config files
+more /etc/kubernetes/config
+
+
+4. In the common config file, change the KUBE_MASTER API server address to use the master's DNS name:
+
+sudo sed -i 's/\(KUBE_MASTER.*\)127.0.0.1\(.*\)/\1ca-lab-vm\2/g' /etc/kubernetes/config
+This command replaces the default master host of 127.0.0.1 with ca-lab-vm.
+
+5. In the apiserver configuration file, change the bind address to listen on all interfaces (0.0.0.0):
+
+sudo sed -i 's/\(KUBE_API_ADDRESS.*\)127.0.0.1\(.*\)/\10.0.0.0\2/g' /etc/kubernetes/apiserver
+This allows other nodes to communicate with the Kubernetes API.
+
+6. Create a key to authorize API requests from pods:
+
+openssl genrsa -out /tmp/serviceaccount.key 2048
+For convenience, it is stored in /tmp. In a production environment, you would protect the key better.
+
+7. Specify the service account key to use for the API server and the controller manager:
+
+sudo sed -i 's/\(KUBE_API_ARGS=\).*/\1"--service_account_key_file=\/tmp\/serviceaccount.key"/' /etc/kubernetes/apiserver
+sudo sed -i 's/\(KUBE_CONTROLLER_MANAGER_ARGS=\).*/\1"--service_account_private_key_file=\/tmp\/serviceaccount.key"/' /etc/kubernetes/controller-manager
+ 
+
+8. Enter the following to configure etcd to also listen on all interfaces:
+
+sudo sed -i 's/\(ETCD_LISTEN_CLIENT_URLS.*\)localhost\(.*\)/\10.0.0.0\2/g' /etc/etcd/etcd.conf
+ 
+
+9. Start, enable the services on reboot, and list the status of the services required by the master:
+
+for SERVICE in etcd kube-apiserver kube-controller-manager kube-scheduler; do
+    sudo systemctl restart $SERVICE
+    sudo systemctl enable $SERVICE
+    sudo systemctl status $SERVICE
+done
+You should see a green active (running) status for each service:
+
+10. Verify the Kubernetes API server by issuing an HTTP GET request to return all the API groups supported by the server:
+
+curl http://ca-lab-vm:8080/apis | more
+Press the space bar to page through the output:
+
+11. Enter the following command to show the versions of supported API groups:
+
+kubectl api-versions
+kubectl is a command-line utility for interacting with Kubernetes clusters. The Kubernetes package you installed enables tab completion for entering kubectl commands. You can press tab while entering a command to see available options and quickly learn about the commands.
+
+[student@ca-lab-vm ~]$ kubectl api-versions
+apps/v1beta1
+authentication.k8s.io/v1beta1
+authorization.k8s.io/v1beta1
+autoscaling/v1
+batch/v1
+certificates.k8s.io/v1alpha1
+extensions/v1beta1
+policy/v1beta1
+rbac.authorization.k8s.io/v1alpha1
+storage.k8s.io/v1beta1
+v1
+
+ 
+
+12. Enter the following command to re-run the last command with verbose output:
+
+kubectl api-versions --v=7
+In the output, you will see the HTTP request and response being sent to and from the API server, followed by the output from the last command:
+
+You can use the --v option to debug or learn about how different commands work.
+
+[student@ca-lab-vm ~]$ kubectl api-versions --v=7
+I0623 06:16:26.086534    3211 cached_discovery.go:112] returning cached discovery info from /home/student/.kube/cache/discovery/localhost_8080/servergroups.json
+I0623 06:16:26.086915    3211 round_trippers.go:296] GET http://localhost:8080/api
+I0623 06:16:26.086930    3211 round_trippers.go:303] Request Headers:
+I0623 06:16:26.086940    3211 round_trippers.go:306]     Accept: application/json, */*
+I0623 06:16:26.086949    3211 round_trippers.go:306]     User-Agent: kubectl/v1.5.2 (linux/amd64) kubernetes/269f928
+I0623 06:16:26.089374    3211 round_trippers.go:321] Response Status: 200 OK in 2 milliseconds
+I0623 06:16:26.089605    3211 round_trippers.go:296] GET http://localhost:8080/apis
+I0623 06:16:26.089620    3211 round_trippers.go:303] Request Headers:
+I0623 06:16:26.089629    3211 round_trippers.go:306]     Accept: application/json, */*
+I0623 06:16:26.089638    3211 round_trippers.go:306]     User-Agent: kubectl/v1.5.2 (linux/amd64) kubernetes/269f928
+I0623 06:16:26.096272    3211 round_trippers.go:321] Response Status: 200 OK in 6 milliseconds
+apps/v1beta1
+authentication.k8s.io/v1beta1
+authorization.k8s.io/v1beta1
+autoscaling/v1
+batch/v1
+certificates.k8s.io/v1alpha1
+extensions/v1beta1
+policy/v1beta1
+rbac.authorization.k8s.io/v1alpha1
+storage.k8s.io/v1beta1
+v1
+
+ 
+
+13. Create a YAML file describing a worker node resource:
+
+cat <<EOF > node.yml
+apiVersion: v1
+kind: Node
+metadata:
+  name: k8s-node
+  labels:
+    # Use labels to organize nodes
+    environment: dev
+spec:
+  # Fully qualified domain name to reach the node (metadata.name by default)
+  externalID: k8s-node
+EOF
+YAML is whitespace-sensitive so it is safest to copy-paste the command. This node object describes a node and how to communicate with the node. 
+
+14. Create the worker node resource:
+
+kubectl create -f node.yml
+ 
+[student@ca-lab-vm ~]$ kubectl create -f node.yml
+node "k8s-node" created
+[student@ca-lab-vm ~]$ host k8s-node
+k8s-node.dz0vcdda3yuencvjufghbnrpfc.jx.internal.cloudapp.net has address 10.0.0.10
+
+
+15. Enter the following command to display all the node resources in the cluster along with their labels:
+
+kubectl get nodes --show-labels
+The STATUS of the node will eventually transition from Unknown to NotReady:
+
+[student@ca-lab-vm ~]$ kubectl get nodes --show-labels
+NAME       STATUS     AGE       LABELS
+k8s-node   NotReady   1m        environment=dev
+
+You will configure the worker node in the next Lab Step to make its STATUS Ready.
+
+16. In order for the worker node to be able to connect to the kube-apiserver on the master node, you need to open allow the connection:
+
+sudo systemctl stop firewalld
+This stops the operating system's firewall all together.

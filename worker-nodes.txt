@@ -1,0 +1,7 @@
+Kubernetes worker nodes, or simply nodes, provide the runtime environment for Kubernetes. Nodes maintain running pods in the Kubernetes cluster. Kubernetes clusters can have one node to thousands of nodes. Each node is configured with several components:
+
+kubelet: Primary agent of the node.  Responsible for watching pods assigned to it, running the pod's containers, reporting pod status, etc.
+kube-proxy: Enables the Kubernetes service abstraction by maintaining network rules and connection forwarding
+Docker: Runs containers
+
+Setting up multiple worker nodes follows a similar process with additional steps for installing an addon to set up a pod network.

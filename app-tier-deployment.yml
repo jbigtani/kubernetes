@@ -10,6 +10,21 @@ spec:
       labels: 
         app: example
         tier: app
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[{
+          "name": "await-redis",
+          "image": "slashdeploy/microservice-example:server-v1",
+          "imagePullPolicy": "IfNotPresent",
+          "env": [{
+            "name": "REDIS_URL",
+            "value": "redis://$(EXAMPLE_DATA_TIER_SERVICE_HOST):$(EXAMPLE_DATA_TIER_SERVICE_PORT_REDIS)"
+          }],
+          "command": [
+            "npm",
+            "run-script",
+            "await-redis"
+          ]
+        }]'
     spec: 
       containers:
         - name: server

@@ -1,0 +1,232 @@
+Introduction
+With a Kubernetes cluster up and running, you can deploy an application in the cluster. You will use a Docker image of a game for the application. The application runs in a client web browser and doesn't store any state across sessions. The deployment you will perform in this Lab Step is effective for such stateless applications. 
+
+ 
+
+Instructions
+1. In your SSH session on the ca-lab-vm master node, enter the following command to create a deployment resource file:
+
+cat <<EOF > deployment.yml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: game-deployment
+spec:
+  # tells deployment to run 1 pods matching the template
+  replicas: 1
+  # create pods using the pod definition in this template
+  template: 
+    metadata:
+      # name is automatically generated based on the deployment.name
+      labels:
+        app: game
+    spec:
+      containers:
+      - name: tetris
+        image: lrakai/tetris:latest
+        ports:
+        - containerPort: 80
+EOF
+The deployment declares a single replica and specifies a single Docker container. The container image is hosted on Docker Hub.
+
+ 
+
+2. Create the deployment resource specified in the deployment.yml file:
+
+kubectl create -f deployment.yml
+ 
+
+3. Get the deployment resource:
+
+kubectl get deployment game-deployment
+The DESIRED column shows how many replicas are desired. The CURRENT column shows how many pod replicas are currently running. Both values are 1:
+
+alt
+
+ 
+
+4. Show more details about the deployment:
+
+kubectl describe deployment game-deployment
+
+[student@ca-lab-vm ~]$ kubectl describe deployment game-deployment
+Name:                   game-deployment
+Namespace:              default
+CreationTimestamp:      Sun, 23 Jun 2019 06:34:20 +0000
+Labels:                 app=game
+Selector:               app=game
+Replicas:               1 updated | 1 total | 0 available | 1 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  1 max unavailable, 1 max surge
+Conditions:
+  Type          Status  Reason
+  ----          ------  ------
+  Available     True    MinimumReplicasAvailable
+OldReplicaSets: <none>
+NewReplicaSet:  game-deployment-581287808 (1/1 replicas created)
+Events:
+  FirstSeen     LastSeen        Count   From                            SubObjectPath   Type            Reason                  Message
+  ---------     --------        -----   ----                            -------------   --------        ------                  -------
+  45s           45s             1       {deployment-controller }                        Normal          ScalingReplicaSet       Scaled up replica set game-deployment-581287808 to 1
+
+
+
+In the event of failed deployments, you can use this command to understand the reason the deployment failed. Under the Conditions section, only the Available condition is present:
+
+alt
+
+It has a Status of True because the minimum number of replicas for the deployment are available. There would be other conditions if the deployment failed.
+
+ 
+
+5. View the cluster-wide events that have been recorded by the cluster:
+
+kubectl get events | more
+You can understand the process taken for deploying the application by inspecting the Message column:
+
+[student@ca-lab-vm ~]$ kubectl get events | more
+LASTSEEN   FIRSTSEEN   COUNT     NAME                              KIND         SUBOBJECT                 TYPE      REASON                    SOURCE                     MESSAGE
+2m         2m          1         game-deployment-581287808-1dskm   Pod                                    Normal    Scheduled                 {default-scheduler }       Successfully assig
+ned game-deployment-581287808-1dskm to k8s-node
+1m         2m          2         game-deployment-581287808-1dskm   Pod                                    Warning   MissingClusterDNS         {kubelet k8s-node}         kubelet does not h
+ave ClusterDNS IP configured and cannot create Pod using "ClusterFirst" policy. Falling back to DNSDefault policy.
+2m         2m          1         game-deployment-581287808-1dskm   Pod          spec.containers{tetris}   Normal    Pulling                   {kubelet k8s-node}         pulling image "lra
+kai/tetris:latest"
+1m         1m          1         game-deployment-581287808-1dskm   Pod          spec.containers{tetris}   Normal    Pulled                    {kubelet k8s-node}         Successfully pulle
+d image "lrakai/tetris:latest"
+1m         1m          1         game-deployment-581287808-1dskm   Pod          spec.containers{tetris}   Normal    Created                   {kubelet k8s-node}         Created container
+with docker id 8d9f4a75681d; Security:[seccomp=unconfined]
+1m         1m          1         game-deployment-581287808-1dskm   Pod          spec.containers{tetris}   Normal    Started                   {kubelet k8s-node}         Started container
+with docker id 8d9f4a75681d
+2m         2m          1         game-deployment-581287808         ReplicaSet                             Normal    SuccessfulCreate          {replicaset-controller }   Created pod: game-
+deployment-581287808-1dskm
+2m         2m          1         game-deployment                   Deployment                             Normal    ScalingReplicaSet         {deployment-controller }   Scaled up replica
+set game-deployment-581287808 to 1
+18m        18m         1         k8s-node                          Node                                   Normal    RegisteredNode            {controllermanager }       Node k8s-node even
+t: Registered Node k8s-node in NodeController
+6m         6m          1         k8s-node                          Node                                   Normal    Starting                  {kube-proxy k8s-node}      Starting kube-prox
+y.
+6m         6m          1         k8s-node                          Node                                   Normal    Starting                  {kubelet k8s-node}         Starting kubelet.
+6m         6m          1         k8s-node                          Node                                   Warning   ImageGCFailed             {kubelet k8s-node}         unable to find dat
+a for container /
+5m         5m          2         k8s-node                          Node                                   Normal    NodeHasSufficientDisk     {kubelet k8s-node}         Node k8s-node stat
+us is now: NodeHasSufficientDisk
+5m         5m          2         k8s-node                          Node                                   Normal    NodeHasSufficientMemory   {kubelet k8s-node}         Node k8s-node stat
+us is now: NodeHasSufficientMemory
+5m         5m          2         k8s-node                          Node                                   Normal    NodeHasNoDiskPressure     {kubelet k8s-node}         Node k8s-node stat
+us is now: NodeHasNoDiskPressure
+5m         5m          1         k8s-node                          Node                                   Normal    NodeNotReady              {kubelet k8s-node}         Node k8s-node stat
+us is now: NodeNotReady
+5m         5m          1         k8s-node                          Node                                   Normal    NodeReady                 {kubelet k8s-node}         Node k8s-node stat
+us is now: NodeReady
+1m         2m          2         k8s-node                          Node                                   Warning   MissingClusterDNS         {kubelet k8s-node}         kubelet does not h
+ave ClusterDNS IP configured and cannot create Pod using "ClusterFirst" policy. pod: "game-deployment-581287808-1dskm_default(eed49ef6-9580-11e9-94fc-000d3a751299)". Falling back to DNSDe
+fault policy.
+
+
+ 
+
+6. Get the pod resource created by the deployment:
+
+kubectl get pods
+The READY column indicates 1 of 1 containers are running:
+
+alt
+
+ 
+
+7. Describe the pod that is running the container in the deployment:
+
+kubectl describe pods | more
+You can see a variety of details including Containers, and Events for the pod. You can append a specific pod name to the end of the command to describe a specific pod. In this case, there is only one pod, so there is no need to specify the name.
+
+ 
+
+8. Describe all the pods with the label app=game: 
+
+kubectl get pods -l app=game
+Recall that the app: game label is specified in the template metadata in the deployment.yml file. Each pod created by the deployment is assigned this label. Labels can be used to filter the output of many commands.
+
+[student@ca-lab-vm ~]$ kubectl get pods -l app=game
+NAME                              READY     STATUS    RESTARTS   AGE
+game-deployment-581287808-1dskm   1/1       Running   0          4m
+ 
+
+9. Create a service resource file:
+
+cat <<EOF > service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: game
+  labels:
+    app: game
+spec:
+  selector:
+    # Use labels to select the pods to route traffic to
+    app: game
+  ports:
+  - protocol: TCP
+    port: 80
+  # Allocate a port on each node in the cluster
+  type: NodePort
+EOF
+A service is required to access the application from outside of the cluster.
+
+ 
+
+10. Create the service:
+
+kubectl create -f service.yml
+ 
+
+11. Describe the service and record what NodePort was allocated:
+
+kubectl describe services game
+alt
+
+The IP value is a virtual IP within a range of addresses reserved for services.
+
+ 
+
+12. Return to the k8s-node SSH session and enter curl ipinfo.io/ip to get the worker node's public IP address.
+
+ 
+
+13. Disable the operating system firewall to allow external connections:
+
+sudo systemctl stop firewalld
+Again, this is only for Lab demonstration purposes. You would only allow the required traffic through the operating system firewall in production. The Azure network security group has been configured to allow traffic on the game port already.
+
+ 
+
+14. Open a web browser and enter the node's public IP address followed by a : and the NodePort you recorded. The full address will resemble the address in the image below:
+
+alt
+
+The network security group has been pre-configured to allow traffic to the ports that the service can map to. 
+
+ 
+
+15. Return to the ca-lab-vm master node SSH session, and scale the application by changing the deployment replicas count to 2:
+
+sed -i 's/\(replicas: \).*/\12/' deployment.yml
+ 
+
+16. Apply the new resource:
+
+kubectl apply -f deployment.yml
+ 
+
+17. Verify that the number of pods increases to 2:
+
+kubectl get pods -l app=game
+It takes a few seconds for the new pod to reach the Running state:
+
+alt
+
+ 
+
+Summary 
+In this Lab Step, you deployed a stateless web application in the Kubernetes cluster. You used a deployment resource to launch the pods on the worker node and used a service resource to map external ports to the application running in the container.

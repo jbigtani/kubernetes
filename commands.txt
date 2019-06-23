@@ -1,5 +1,6 @@
 --lesson203
 
+
 kubectl create -f namespace-lesson203.yml
 kubectl create -f data-tier-service.yml --namespace lesson203
 kubectl create -f data-tier-deployment.yml --namespace lesson203
@@ -9,6 +10,9 @@ kubectl get deployment --namespace lesson203
 kubectl get pods --namespace lesson203
 kubectl create -f app-tier-deployment.yml --namespace lesson203
 kubectl get deployments --namespace lesson203
+kubectl get pods --namespace lesson203
+kubectl logs example-app-tier-8d494656f-j86dv --namespace lesson203
+kubectl logs example-app-tier-8d494656f-j86dv -f --namespace lesson203
 
 --lesson202
 kubectl get pods --namespace lesson202
@@ -29,9 +33,15 @@ kubectl rollout status deployment example-app-tier --namespace lesson202
 kubectl rollout history deployment example-app-tier --namespace lesson202
 kubectl rollout undo deployment example-app-tier --namespace lesson202
 
+--kubectl
+kubectl config view
+kubectl config ip
 
 --minikube
 minikube dashboard
 minikube addons list
 minikube addons disable dashboard
 minikube status
+minikube start
+minikube stop
+
