@@ -1,0 +1,9 @@
+C:\JB\training\kubernetes>minikube start
+* minikube v1.1.1 on windows (amd64)
+* Tip: Use 'minikube start -p <name>' to create a new cluster, or 'minikube delete' to delete this one.
+* Restarting existing virtualbox VM for "minikube" ...
+* Waiting for SSH access ...
+* Configuring environment for Kubernetes v1.14.3 on Docker 18.09.6
+* Relaunching Kubernetes v1.14.3 using kubeadm ...
+* Verifying: apiserver proxy etcd scheduler controller dns
+* Done! kubectl is now configured to use "minikube"

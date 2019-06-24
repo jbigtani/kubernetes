@@ -1,3 +1,9 @@
+https://github.com/kubernetes/kops
+
+https://kubernetes.io/docs/concepts/cluster-administration/federation/
+
+https://aws.amazon.com/quickstart/architecture/vmware-kubernetes/
+
 Introduction
 With a Kubernetes cluster up and running, you can deploy an application in the cluster. You will use a Docker image of a game for the application. The application runs in a client web browser and doesn't store any state across sessions. The deployment you will perform in this Lab Step is effective for such stateless applications. 
 

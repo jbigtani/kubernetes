@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata: 
+  name: example-app-tier
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: example-app-tier
+      labels: 
+        app: example
+        tier: app
+    spec: 
+      containers:
+        - name: server
+          image: "slashdeploy/microservice-example:server-v1"
+          imagePullPolicy: IfNotPresent
+          ports: 
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: REDIS_URL
+              value: "redis://$(EXAMPLE_DATA_TIER_SERVICE_HOST):$(EXAMPLE_DATA_TIER_SERVICE_PORT_REDIS)"
+            - name: DEBUG
+              value: "express:*"
+          resources:
+            requests:
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /probe/liveness
+              port: 8080
+            initialDelaySeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /probe/readiness
+              port: 8080
+            initialDelaySeconds: 5
