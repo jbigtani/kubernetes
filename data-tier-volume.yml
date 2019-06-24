@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata: 
+  name: data-tier-volume
+spec:
+  capacity:
+    storage: 128M
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /data/example
