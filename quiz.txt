@@ -1,0 +1,55 @@
+The following authorization plug-in implementations are available, and are selected by a flag:
+--authorization-mode=AlwaysDeny blocks all requests (used in tests).
+--authorization-mode=AlwaysAllow allows all requests; use if you don’t need authorization.
+--authorization-mode=ABAC allows for a simple local-file-based user-configured authorization policy. ABAC stands for Attribute-Based Access Control. authorization policy.
+--authorization-mode=RBAC is an experimental implementation which allows for authorization to be driven by the Kubernetes API. RBAC stands for Roles-Based Access Control.
+--authorization-mode=Webhook allows for authorization to be driven by a remote service using REST.
+ Learn More: 
+https://kubernetes.io/docs/admin/authorization/
+
+
+The DefaultStorageClass admission control plug-in observes creation of PersistentVolumeClaim objects that do not request any specific storage class and automatically adds a default storage class to them. This way, users that do not request any special storage class do no need to care about them at all and they will get the default one.
+
+This plug-in does not do anything when no default storage class is configured. When more than one storage class is marked as default, it rejects any creation of PersistentVolumeClaim with an error and administrator must revisit StorageClass objects and mark only one as default. This plugin ignores any PersistentVolumeClaim updates; it acts only on creation.
+
+ Learn More: 
+https://kubernetes.io/docs/admin/admission-controllers/
+
+Consistent with overall API convention, a phase is a simple, high-level summary of the phase of the lifecycle of a pod. It is not intended to be a comprehensive rollup of observations of container-level or even pod-level conditions or other state, nor is it intended to be a comprehensive state machine.
+The number and meanings of Pod phase values are tightly guarded. Other than what is documented here, nothing should be assumed about pods with a given Pod phase.
+
+Pending: The pod has been accepted by the system, but one or more of the container images has not been created. This includes time before being scheduled as well as time spent downloading images over the network, which could take a while.
+Running: The pod has been bound to a node, and all of the containers have been created. At least one container is still running, or is in the process of starting or restarting.
+Succeeded: All containers in the pod have terminated in success and will not be restarted.
+Failed: All containers in the pod have terminated, or at least one container has terminated in failure (exited with non-zero exit status or was terminated by the system).
+Unknown: For some reason, the state of the pod could not be obtained, typically due to an error in communicating with the host of the pod.
+ Learn More: https://kubernetes.io/docs/user-guide/pod-states/
+
+Google Kubernetes Engine (GKE) can support Linux operating systems, monolithic apps, and is a managed service. The only issue that can prevent you from migrating your container-based application, without rebuilding it, is that GKE only supports Docker containers and your application runs on LXC containers.
+https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview#workloads
+
+Sometimes you don’t need or want load-balancing and a single service IP. In this case, you can create “headless” services by specifying "None" for the cluster IP (spec.clusterIP). 
+This option allows developers to reduce coupling to the Kubernetes system by allowing them freedom to do discovery their own way. Applications can still use a self-registration pattern and adapters for other discovery systems could easily be built upon this API.
+
+For such Services, a cluster IP is not allocated, kube-proxy does not handle these services, and there is no load balancing or proxying done by the platform for them. How DNS is automatically configured depends on whether the service has selectors defined.
+https://kubernetes.io/docs/concepts/services-networking/service/#headless-services
+
+If you deploy applications with Replication Controllers, you should consider switching them to Deployments. A Deployment is a higher-level controller that automates rolling updates of applications declaratively, and therefore is recommended.
+https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/
+
+Users access the API using kubectl, client libraries, or by making REST requests. Both human users and Kubernetes service accounts can be authorized for API access. 
+
+ Learn More: 
+https://kubernetes.io/docs/admin/accessing-the-api/
+
+Container hooks provide information to the container about events in its management lifecycle. For example, immediately after a container is started, it receives a PostStart hook. These hooks are broadcast into the container with information about the life-cycle of the container. They are different from the events provided by Docker and other systems, which are output from the container. Output events provide a log of what has already happened. Input hooks provide real-time notification about things that are happening, but no historical log.
+https://kubernetes.io/docs/user-guide/container-environment/
+
+Kubernetes supports two primary modes of finding a Service: environment variables and DNS. The Kubernetes DNS server is the only way to access services of type ExternalName.
+https://kubernetes.io/docs/user-guide/services/
+
+By default, the Kubernetes API server serves HTTP on two ports:
+
+The local host port is intended for testing and bootstrapping, and for other components of the master node. It does not use TLS, and its default port is 8080. Requests bypass the authentication and authorization modules (but not admission control).
+The secure port should be used whenever possible. It uses TLS, and its default port is 6443. The requests are handled by authentication, authorization, and admission control modules (in that order).
+https://kubernetes.io/docs/admin/accessing-the-api/

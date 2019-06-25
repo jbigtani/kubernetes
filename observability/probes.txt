@@ -1,0 +1,247 @@
+Introduction
+If a Pod is in a Running state it does not necessarily mean the Pod is ready to use or that the Pod is operating as you would expect. For example, a running Pod may not be ready to accept requests or may have entered into an internal failed state, such as a deadlock, preventing it to make progress on new requests. Kubernetes introduces readiness and liveness probes for containers to detect when Pods are in such states. More specifically:
+
+Readiness probes are used to detect when a Pod is unable to serve traffic, such as during startup when large amounts of data are being loaded or caches are being warmed. When a readiness probe fails, it means that the Pod needs more time to become ready to serve traffic. When the Pod is accessed through a Kuberentes Service, the Service will not serve traffic to any Pods that have a failing readiness probe. 
+Liveness probes are used to detect when a Pod fails to make progress after entering a broken state, such as deadlock. The issues causing the Pod to enter such a broken state are bugs, but by detecting a Pod is in a broken state allows Kubernetes to restart the Pod and allow progress to be made, perhaps only temporarily until arriving at the broken state again. The application availability is improved compared to leaving the Pod in the broken state.
+Both probes run for the entire lifetime of the container they are declared in. A container can define up to one of each type of probe. Both probes are also configured the same way. The only difference is how a probe failure is interpreted.
+
+You will use both types of probes in this Lab Step.
+
+ 
+
+Instructions
+1. Enter the following commands to secure copy the kubectl config from the master node using SSH agent forwarding, and enter yes when prompted about the host's authentiticy:
+
+# Get the IP address of the Kubernetes master using the AWS CLI
+master_ip=$(aws ec2 describe-instances \
+  --region=us-west-2 \
+  --filters "Name=tag:Name,Values=k8s-master" \
+  --query "Reservations[0].Instances[0].PrivateIpAddress" \
+  --output text)
+# Securely copy the kubeonfig file
+scp -o "ForwardAgent yes" ubuntu@$master_ip:~/kubeconfig ~/.kube/config
+
+//k8master Private ip
+./kube
+configmaster_ip=10.0.20.85
+
+kubectl is now ready to use and will automatically use the configuration located in ~/.kube/config.
+
+Warningalt: If you receive an error message, the cluster may not be fully provisioned yet. Periodically re-issue the command every minute until it succeeds. You can check the EC2 Console's Instances view to see when all instances are in the running state.
+
+./kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNU1EWXlOVEUyTXpBd05Gb1hEVEk1TURZeU1qRTJNekF3TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTlc4CjFaWGZaSy95cEdqWitjQ2EwTk5nL3JwQnBtU2JVTkxJcUk5SEh5eHgxNjVnOFNPdUowR0xKUCtra2ZlOEpCYTYKN0VjQmRrT3ZzL0NTM0pCVkR2cUlER2dyVHF6V0tGam5vSjJ5aG5NVlJWNWFVZHh0OWRKMFdsdEl1eUxOUWxCWgpDMU1nbWxuclZrcVhIOEVGT1lvUUFReWE0YWpmVEtKVWtKVlpvdkxQR2NpWTNxbGpERjhMM1NkKzBhdEFPdWtjCkNoeGtwUEhQWlN3S3ZRemJhNTEvSi8vaS9yRE16N3RrMlc5Y1p2WXFCOFJmcS91RkdhREg3OVJ2QmdpcmJmRy8KTkNpSXJXTC9XdmdxTjl1L3h0ejlZVHVYblBDSDAxRGlDcjNPM1dZc3NrUUpvZG1hcW5YVWErRzlnSkpGRTl5MQpMdHR6VmNOVFpic3BRUy8zaVdFQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFMMWlPc2twbTBtakVlRHRmVHY0OEZPRHZ5dlYKTGdBWXcxZXNKQUNtSmNnZjlwd3dvRzl2TGMvQzVTakJlbUJEUE9nUStaZjlQOWJ1R2F1aXZ0SUNUakpzVk05SwpvN1pMa2ZBakVMdVlZYUE5VGlsaVBXVXNxSkdrZ0YvUEVJNkUyRnIxUEVRbWNrMkVZcjVFays3ZlRIdXE2SVVUCmRYei92YXQySmpjb2UwTmY4ck1QN1hxZnZYeVJYYXU4RnBrN2tSZGJnWEpnZTNnWU5jL1J5SCtmL2tjV1FZZkEKUWp1amtubjJnOVZCQi90RmVxVE51bWNCWm5VZS91d2xNZ1RCdEtIKzdrajlWSWdnMEVhdC8xdzNXQ0F2SzRIVwpqOUR5Z1IvRFdtekZGK1ZGcHB4cTdrK1B4SWZyRkNLekVQazZlai9XbS9hNEtsTExSWUZ6M3JLNWd2RT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    server: https://cloudacad-apiloadb-1pjxr1lmtig8s-1529637102.us-west-2.elb.amazonaws.com:443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: admin
+  name: admin@kubernetes
+current-context: admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN6akNDQWJhZ0F3SUJBZ0lJRnVieEtDMmx1OUl3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB4T1RBMk1qVXhOak13TURSYUZ3MHlNREEyTWpReE5qTXdOVFJhTUJBeApEakFNQmdOVkJBTVRCV0ZrYldsdU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBCndQY1Mvci9YS0FQbkJGUEtTMjRWeFNvV0VyQ0JvTHRHVWkzQUNuNktaTWhHNUQ4dHBObm9hbWMvenE5dElaUU8KWmdUdlRIb3JiWG9ObzE5VFl6QVR4dWVnakNEbTBpM3pJRXIyTzh1TXJiSDdHOWRJNWV1Z2dUUEpFS0V0UWJYUwphbTZvTzlQbFdBL0d0dmcwYkFrcG1ONW9kQUVxZGg4eGUrQnZyMG5pU0xiTEJSbHUrb0hPT2tPYWREMU9LUzl3Cjl2Ym5FdWxUNFFXaklIRXQ0eEJaYUlmSVp4cmhLUVQ4ZHZ2Zk1HZ0lPKzRCdmNWMEQrRzBBTzBqamx6cGJ2ZEcKeFFGdE9ZZ2E5Mllnc3c2YVdPb3NGdHdoaXZwaEZXVUVBMmhicUtXQ1MzNm9SK1BEMUt1WFF6aXNOZmx5QTd1bwpYOENJdnhuMHg0MG1mczR0dWRBaFZ3SURBUUFCb3ljd0pUQU9CZ05WSFE4QkFmOEVCQU1DQmFBd0V3WURWUjBsCkJBd3dDZ1lJS3dZQkJRVUhBd0l3RFFZSktvWklodmNOQVFFTEJRQURnZ0VCQURaWEVneVdubTZZTXRsU2VwZHkKQVNxOHVYM3ZBSytkVTZKVVovTis1a3JwV00vdVpmemI0SUpZbWpodGNuYUtpOW5wYVZ6TEU5by9aOUUvb3VZQgphTzFYekJwQjQxMHNTQTErT3pJT1lmSnhqRVQrTnhFTEZxenNNbW1PUkJHYWtwMEwwTnlSWm5WenMyckFQZkhFCkFwdGlQYndrWHNnaVBTdW90Qjl0R3JHUDhWQ2hVOXhIMDFBMS8wcjNNQUFKU2JRZkRrZ1pranNSTW56RmdDNGMKZkhDazQxb3hGNldTNHd4SmorekhBVXVSaDFZSUNMbXphVXhWOXIvOEdjRnFya25ldFE1TnlPOVRtZUJkd0xmOQowcmdGOTJwQ281WkN5S0pmWjF0Z1k1c05QWG5hNXBiaHRyUGpIRCtlWFRhUHFMbHZuY2dmUDZFYXdHcVgwNmtvCnh5WT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+
+
+ 
+
+2. Load kubectl shell completions for your current shell session:
+
+source <(kubectl completion bash)
+With completions loaded, you can press tab to autocomplete or list available completions as you enter kubectl commands.
+
+ 
+
+3. Explain the readinessProbe field which is at the path pod.spec.containers.readinessProbe:
+
+kubectl explain pod.spec.containers.readinessProbe
+alt
+
+Read through the DESCRIPTION and FIELDS. There are three types of actions a probe can take to assess the readiness of a Pod's container:
+
+exec: Issue a command in the container. If the exit code is zero the container is a success, otherwise it is a failed probe.
+httpGet: Send and HTTP GET request to the container at a specified path and port. If the HTTP response status code is a 2xx or 3xx then the container is a success, otherwise it is a failure.
+tcpSocket: Attempt to open a socket to the container on a specified port. If the connection cannot be established, the probe fails.
+The number of consecurtive successes is configured via the successThreshold field, and the number of consecutive failures required to tranisition from success to failure is failureThreshold. The probe runs every periodSeconds and each probe will wait up to timeoutSeconds to complete.
+
+ 
+
+4. Create a Pod that uses a readinessProbe with an HTTP GET action:
+
+cat << 'EOF' > pod-readiness.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: readiness
+  name: readiness-http
+spec:
+  containers:
+  - name: readiness
+    image: httpd:2.4.38-alpine
+    ports:
+    - containerPort: 80
+    # Sleep for 30 seconds before starting the server
+    command: ["/bin/sh","-c"]
+    args: ["sleep 30 && httpd-foreground"]
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 3
+      periodSeconds: 3
+EOF
+kubectl create -f pod-readiness.yaml
+alt
+
+The probe will check for a successful HTTP response from the Pod's IP on port 80. The container command delays starting the server by sleeping for 30 seconds to simulate an intense startup routine. You can also set custom HTTP headers for the probe, issue kubectl explain pod.spec.containers.readinessProbe.httpGet for details.
+
+ 
+
+5. Describe the Pod to see how events related to the readiness probe:
+
+kubectl describe pod readiness-http
+In the Events you should see some Warning entries related to the failed probe:
+
+ubuntu@ip-10-0-128-5:~$ kubectl describe pod readiness-http
+Name:               readiness-http
+Namespace:          default
+Priority:           0
+PriorityClassName:  <none>
+Node:               ip-10-0-23-47.us-west-2.compute.internal/10.0.23.47
+Start Time:         Tue, 25 Jun 2019 16:46:34 +0000
+Labels:             test=readiness
+Annotations:        <none>
+Status:             Running
+IP:                 192.168.21.65
+Containers:
+  readiness:
+    Container ID:  docker://136c26787c8fc340e36c12a28b34f127facec3c12f54be0c4c2629871532d551
+    Image:         httpd:2.4.38-alpine
+    Image ID:      docker-pullable://httpd@sha256:eb8ccf084cf3e80eece1add239effefd171eb39adbc154d33c14260d905d4060
+    Port:          80/TCP
+    Host Port:     0/TCP
+    Command:
+      /bin/sh
+      -c
+    Args:
+      sleep 30 && httpd-foreground
+    State:          Running
+      Started:      Tue, 25 Jun 2019 16:46:47 +0000
+    Ready:          True
+    Restart Count:  0
+    Readiness:      http-get http://:80/ delay=3s timeout=1s period=3s #success=1 #failure=3
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-rh669 (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  default-token-rh669:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-rh669
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type     Reason     Age                   From                                               Message
+  ----     ------     ----                  ----                                               -------
+  Normal   Scheduled  3m43s                 default-scheduler                                  Successfully assigned default/readiness-http to ip-10-0-23-47.us-west-2.compute.internal
+  Normal   Pulling    3m41s                 kubelet, ip-10-0-23-47.us-west-2.compute.internal  pulling image "httpd:2.4.38-alpine"
+  Normal   Pulled     3m31s                 kubelet, ip-10-0-23-47.us-west-2.compute.internal  Successfully pulled image "httpd:2.4.38-alpine"
+  Normal   Created    3m31s                 kubelet, ip-10-0-23-47.us-west-2.compute.internal  Created container
+  Normal   Started    3m30s                 kubelet, ip-10-0-23-47.us-west-2.compute.internal  Started container
+  Warning  Unhealthy  3m3s (x9 over 3m27s)  kubelet, ip-10-0-23-47.us-west-2.compute.internal  Readiness probe failed: Get http://192.168.21.65:80/: dial tcp 192.168.21.65:80: connect: connection refused
+
+
+There will be about 10 (x10) failed probes since the container sleeps for 30 seconds and the probe runs every 3 seconds after an initial 3 second delay. You can see when the succeeds by looking at the Conditions section:
+
+alt
+
+The Ready and ContainerReady Status will both be True once the probe succeeds. They will be False until then. Also note the Containers section summarizes the configured readiness probe:
+
+alt
+
+ 
+
+6. To confirm the readiness probes are always running, kill the httpd server processes running in the container
+
+kubectl exec readiness-http -- pkill httpd
+This command runs pkill httpd (kill all httpd processes) inside the readiness-http Pod's only container. The two dashes (--) are used to indicate where the command to run begins and options parsing for kubectl exec ends.
+
+ 
+
+7. Describe the Pod and observe the Ready Conditions are False:
+
+kubectl describe pod readiness-http
+alt
+
+Note: The httpd server processes will recover from being killed after minute. If more than a minute has passed since you issued the previous instruction's command, you may see both conditions are True.  If that happened, you can kill the httpd processes again and quickly describe the Pod.
+
+ 
+
+8. Create a Pod that uses a liveness probe to detect broken states:
+
+cat << 'EOF' > pod-liveness.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: liveness
+  name: liveness-tcp
+spec:
+  containers:
+  - name: liveness
+    image: busybox:1.30.1
+    ports:
+    - containerPort: 8888
+    # Listen on port 8888 for 30 seconds, then sleep
+    command: ["/bin/sh", "-c"]
+    args: ["timeout 30 nc -p 8888 -lke echo hi && sleep 600"]
+    livenessProbe:
+      tcpSocket:
+        port: 8888
+      initialDelaySeconds: 3
+      periodSeconds: 5
+EOF
+kubectl create -f pod-liveness.yaml
+Recall that liveness probes have the same configuration as readiness probes. The nc (netcat) command listens (the -l option) for connections on port (-p) 8888 and responds with the message hi for the first 30 seconds, after which timeout kills the nc server. The liveness probe attempts to establish a connection with the server every 5 seconds.
+
+ 
+
+9. Watch the describe output for the Pod to observe when the liveness probe fails and the Pod is restarted:
+
+watch kubectl describe pod liveness-tcp
+The Events will list BackOff and Unhealthy events when the liveness probe fails. Over time you should see the Restart Count increment about every minute:
+
+alt
+
+Recall that the the probe needs to fail three times after having success to consider the probe as failed.
+
+ 
+
+10. Press ctrl+c to stop watching the output.
+
+ 
+
+11. Delete the Pods created in this Lab Step:
+
+kubectl delete -f pod-readiness.yaml
+kubectl delete -f pod-liveness.yaml
+alt
+alt
+
+ 

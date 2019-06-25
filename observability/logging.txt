@@ -1,0 +1,327 @@
+Introduction
+Kubernetes has basic support for container logging built-in. Kubernetes will capture anything written to standard output and standard error as a log message. For logs that are not written to standard output, More effort is required. You can always copy log files in containers outside of the container or issue commands by running a shell in the container to retrieve the logs you need. You will see example of all of these approaches in this Lab Step. There is another common approach that you will see in the following Lab Step.
+
+ 
+
+Instructions
+1. Create a Namespace for the resources you'll create in this Lab Step and change your default kubectl context to use the Namespace:
+
+# Create namespace
+kubectl create namespace logs
+# Set namespace as the default for the current context
+kubectl config set-context $(kubectl config current-context) --namespace=logs
+alt
+alt
+
+It is a best practice to use namespaces to logically organize your Kubernetes resources.
+
+ 
+
+2. Create a multi-container Pod that runs a server and a client that sends requests to the server:
+
+cat << 'EOF' > pod-logs.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: logs
+  name: pod-logs
+spec:
+  containers:
+  - name: server
+    image: busybox:1.30.1
+    ports:
+    - containerPort: 8888
+    # Listen on port 8888
+    command: ["/bin/sh", "-c"]
+    # -v for verbose mode
+    args: ["nc -p 8888 -v -lke echo Received request"]
+    readinessProbe:
+      tcpSocket:
+        port: 8888
+  - name: client
+    image: busybox:1.30.1
+    # Send requests to server every 5 seconds
+    command: ["/bin/sh", "-c"]
+    args: ["while true; do sleep 5; nc localhost 8888; done"]
+EOF
+kubectl create -f pod-logs.yaml
+alt
+
+The server is similar to the one in the previous Lab Step except it includes the -v option for verbose output. This causes the server to write some text to standard output. The client container uses nc as well, but instead of listening for connections on a port it connects to the server.
+
+ 
+
+3. Retrieve the logs (standard output messages) from the server container:
+
+kubectl logs pod-logs server
+alt
+
+After an initial listening message, connection messages for each client request are dislplayed. The arguments to the kubectl logs command are the pod followed by the specific container. If a Pod only has one container, the last argument can be omitted. Several examples are available in the logs help (kubectl logs --help).
+
+ 
+
+4. Display the most recent log (--tail=1) including the timestamp and stream (-f for follow) the logs from the client container:
+
+kubectl logs -f --tail=1 --timestamps pod-logs client
+alt
+
+You will see a new request being made every five seconds.
+
+ 
+
+5. Press ctrl+c to stop streaming the logs.
+
+ 
+
+6. Create an Apache web server and allow access to it via a load balancer:
+
+cat << 'EOF' > pod-webserver.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: logs
+  name: webserver-logs
+spec:
+  containers:
+  - name: server
+    image: httpd:2.4.38-alpine
+    ports:
+    - containerPort: 80
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+EOF
+kubectl create -f pod-webserver.yaml
+kubectl expose pod webserver-logs --type=LoadBalancer
+alt
+alt
+
+The expose command uses the container port for the Service's port when the --port option isn't provided. In this case, the Service uses port 80 (HTTP).
+
+ 
+
+7. Watch the output of get services until the EXTERNAL-IP column has a DNS address:
+
+watch kubectl get services
+alt
+
+ 
+
+8. Copy the DNS address in the External-IP column and press ctrl+c to quit watching the output.
+
+ 
+
+9. Navigate to the DNS address in a new browser tab to confirm the Service has exposed the Pod over the Internet: 
+
+alt
+
+Note: If the page does not initially load, you may need to wait a minute or two until the load balancer completes its health checks and starts serving traffic to the Pods. Refresh the page every minute until the page loads.
+
+ 
+
+10. Refresh the page a few times and then append /oops to the address to cause an Not Found error:
+
+alt
+
+ 
+
+11. Display the logs for the web server Pod:
+
+kubectl logs webserver-logs
+
+10.0.18.112 - - [25/Jun/2019:17:32:20 +0000] "GET / HTTP/1.1" 200 45
+192.168.21.64 - - [25/Jun/2019:17:32:22 +0000] "GET / HTTP/1.1" 200 45
+192.168.21.64 - - [25/Jun/2019:17:32:23 +0000] "GET /favicon.ico HTTP/1.1" 404 209
+10.0.18.112 - - [25/Jun/2019:17:32:30 +0000] "GET / HTTP/1.1" 200 45
+10.0.18.112 - - [25/Jun/2019:17:32:30 +0000] "GET /oops HTTP/1.1" 404 202
+10.0.18.112 - - [25/Jun/2019:17:32:40 +0000] "GET / HTTP/1.1" 200 45
+
+The browser request logs, for example the GET /favicon.ico and GET /oops requests, are mixed within the readiness probe requests. The httpd container directs access logs and errors to standard output and standard error, instead of the files as would be the case for non-containerized installations.
+
+When working with legacy applications that are containerized, they may use files for logging rather than standard output and standard error. The next instructions demonstrate the commands you could use to access those types of logs.
+
+ 
+
+12. Retrieve the last 10 lines from the conf/httpd.conf file:
+
+kubectl exec webserver-logs -- tail -10 conf/httpd.conf
+alt
+
+The tail command with -10 prints the last 10 lines of the given file. Although httpd.conf isn't a log file, you could use the command to access log files in the same way.
+
+ 
+
+13. Copy the conf/httpd.conf from the container to the bastion host:
+
+kubectl cp webserver-logs:conf/httpd.conf local-copy-of-httpd.conf
+The cp command takes a source file spec (webserver-logs:conf/httpd.conf) and a destination file spec (local-copy-of-httpd.conf). You can also copy from the local file system to a container using cp. To indicate the Pod file system, begin the file spec with the Pod name followed by colon and then the path. There are several examples in the help if you ever forget the syntax (kubectl cp --help).
+
+ 
+ Kubernetes Logging Using a Logging Agent and the Sidecar Pattern
+ 
+ Introduction
+The sidecar multi-container pattern uses a "sidecar" container to extend the primary container in the Pod. In the context of logging, the sidecar is a logging agent. The logging agent streams logs from the primary container, such as a web server, to a central location that aggregates logs. To allow the sidecar access to the log files, both containers mount a volume at the path of the log files. In this Lab Step, you will use an S3 bucket to collect logs. You will use a sidecar that uses Fluentd, a popular data collector often used as a logging layer, with an S3 plugin installed to stream log files in the primary container to S3.
+
+ 
+
+Instructions
+1. Store the name of the logs S3 bucket created for you by the Cloud Academy Lab environment:
+
+s3_bucket=$(aws s3api list-buckets --query "Buckets[].Name" --output table | grep logs | tr -d \|)
+ 
+
+2. Create a ConfigMap that stores the fluentd configuration file:
+
+cat << EOF > fluentd-sidecar-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+data:
+  fluent.conf: |
+    # First log source (tailing a file at /var/log/1.log)
+    <source>
+      @type tail
+      format none
+      path /var/log/1.log
+      pos_file /var/log/1.log.pos
+      tag count.format1
+    </source>
+
+    # Second log source (tailing a file at /var/log/2.log)
+    <source>
+      @type tail
+      format none
+      path /var/log/2.log
+      pos_file /var/log/2.log.pos
+      tag count.format2
+    </source>
+
+    # S3 output configuration (Store files every minute in the bucket's logs/ folder)
+    <match **>
+      @type s3
+
+      s3_bucket $s3_bucket
+      s3_region us-west-2
+      path logs/
+      buffer_path /var/log/
+      store_as text
+      time_slice_format %Y%m%d%H%M
+      time_slice_wait 1m
+      
+      <instance_profile_credentials>
+      </instance_profile_credentials>
+    </match>
+EOF
+kubectl create -f fluentd-sidecar-config.yaml
+ConfigMaps allow you to separate configuration from the container images. This increases the reusability of images. ConfigMaps can be mounted into containers using Kubernetes Volumes. Explaining the fluent.conf configuration file format is outside of the scope of this Lab. Just know that two log sources are configured in the /var/log directory and their log messages will be tagged with count.format1 and count.format2. The primary container in the Pod will stream logs to those two files. The configuration also describes streaming all the logs to the S3 logs bucket in the match section.  
+
+ 
+
+3. Create a multi-container Pod using a fluentd logging agent sidecar (count-agent): 
+
+cat << 'EOF' > pod-counter.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: counter
+spec:
+  containers:
+  - name: count
+    image: busybox
+    command: ["/bin/sh", "-c"]
+    args:
+    - >
+      i=0;
+      while true;
+      do
+        # Write two log files along with the date and a counter
+        # every second
+        echo "$i: $(date)" >> /var/log/1.log;
+        echo "$(date) INFO $i" >> /var/log/2.log;
+        i=$((i+1));
+        sleep 1;
+      done
+    # Mount the log directory /var/log using a volume
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+  - name: count-agent
+    image: lrakai/fluentd-s3:latest
+    env:
+    - name: FLUENTD_ARGS
+      value: -c /fluentd/etc/fluent.conf
+    # Mount the log directory /var/log using a volume
+    # and the config file
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+    - name: config-volume
+      mountPath: /fluentd/etc
+  # Use host network to allow sidecar access to IAM instance profile credentials
+  hostNetwork: true
+  # Declare volumes for log directory and ConfigMap
+  volumes:
+  - name: varlog
+    emptyDir: {}
+  - name: config-volume
+    configMap:
+      name: fluentd-config
+EOF
+kubectl create -f pod-counter.yaml
+The count container writes the date and a counter variable ($i) in two different log formats to two different log files in the /var/log directory every second. The /var/log directory is mounted as a Volume in both the primary count container and the count-agent sidecar so both containers can access the logs. The sidecar also mounts the ConfigMap to access the fluentd configuration file. By using a ConfigMap, the same sidecar container can be used for any configuration compared to storing the configuration in the image and having to manage separate container images for each configuration.
+
+ 
+
+4. Navigate to the S3 Console and click the bucket with a name beginning with cloudacademylabs-k8slogs-:
+
+alt
+
+The bucket contains a logs folder that contains logs streamed from the sidecar every minute, according to the ConfigMap configuration file:
+
+alt
+
+Note: It takes a minute for the first logs to be sent to S3. If you don't see a logs folder, refresh the view after a minute.
+
+ 
+
+5. Click one of the log files in the logs folder and then click Open from the file details view
+
+alt
+
+You may also need to allow the pop-up in your broswer. For example in Chrome, click Pop-up blocked in the address bar folled by the blue URL beginning with https://s3....:
+
+alt
+
+The file contents will resemble the following:
+
+2019-06-25T17:31:41+00:00	fluent.info	{"worker":0,"message":"fluentd worker is now running worker=0"}
+2019-06-25T17:31:42+00:00	count.format1	{"message":"7: Tue Jun 25 17:31:42 UTC 2019"}
+2019-06-25T17:31:42+00:00	count.format2	{"message":"Tue Jun 25 17:31:42 UTC 2019 INFO 7"}
+2019-06-25T17:31:43+00:00	count.format2	{"message":"Tue Jun 25 17:31:43 UTC 2019 INFO 8"}
+2019-06-25T17:31:43+00:00	count.format1	{"message":"8: Tue Jun 25 17:31:43 UTC 2019"}
+2019-06-25T17:31:44+00:00	count.format2	{"message":"Tue Jun 25 17:31:44 UTC 2019 INFO 9"}
+2019-06-25T17:31:44+00:00	count.format1	{"message":"9: Tue Jun 25 17:31:44 UTC 2019"}
+2019-06-25T17:31:45+00:00	count.format2	{"message":"Tue Jun 25 17:31:45 UTC 2019 INFO 10"}
+2019-06-25T17:31:45+00:00	count.format1	{"message":"10: Tue Jun 25 17:31:45 UTC 2019"}
+2019-06-25T17:31:46+00:00	count.format1	{"message":"11: Tue Jun 25 17:31:46 UTC 2019"}
+
+You have confirmed that the sidecar has extended the primary container to stream its logs to S3.
+
+
+
+ get the last 10 lines out of the etcd Pod's /etc/mtab file.
+ubuntu@ip-10-0-128-5:~$ kubectl exec etcd-ip-10-0-20-85.us-west-2.compute.internal -n kube-system -- tail -10  /etc/mtab
+proc /proc/irq proc ro,relatime 0 0
+proc /proc/sys proc ro,relatime 0 0
+proc /proc/sysrq-trigger proc ro,relatime 0 0
+tmpfs /proc/acpi tmpfs ro,relatime 0 0
+tmpfs /proc/kcore tmpfs rw,nosuid,size=65536k,mode=755 0 0
+tmpfs /proc/keys tmpfs rw,nosuid,size=65536k,mode=755 0 0
+tmpfs /proc/timer_list tmpfs rw,nosuid,size=65536k,mode=755 0 0
+tmpfs /proc/sched_debug tmpfs rw,nosuid,size=65536k,mode=755 0 0
+tmpfs /proc/scsi tmpfs ro,relatime 0 0
+tmpfs /sys/firmware tmpfs ro,relatime 0 0
