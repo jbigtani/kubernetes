@@ -1,0 +1,247 @@
+Using Jobs to Manage Pods that Run to Completion
+
+Introduction
+Deployments are best suited for long-running Pods that should not normally exit, such as web servers. There are other higher-level resources for Pods that perform batch work and run to completion. They are Jobs and CronJobs.
+
+Jobs allow you to set a specific number of Pods that must run to completion. If a Pod fails, the Job will start a new Pod until the desired number of Pods reaching completion is met. Jobs can run multiple Pods in parallel. When the desired number of Pods successfully complete, the Job is complete. The Pods the Job creates are not automatically deleted allowing you to view their logs and statuses. When you are ready, you can delete the Job with kubectl and the associated Pods will be automatically deleted.
+
+CronJobs run Jobs based on a declared schedule, similar to the Unix cron tool.
+
+You will briefly explore both resources in this Lab Step.
+
+ 
+
+Instructions
+1. Create a Namespace for the resources you will create in this Lab Step and change your default kubectl context to use the Namespace:
+
+# Create namespace
+kubectl create namespace jobs
+# Set namespace as the default for the current context
+kubectl config set-context $(kubectl config current-context) --namespace=jobs
+alt
+
+alt
+
+ 
+
+2. Create a Job named one-off that sleeps for 30 seconds:
+
+kubectl create job one-off --image=alpine -- sleep 30
+alt
+
+The Job will immediately start running a single Pod by default.
+
+ 
+
+3. Read through the spec of the Job to see what other fields can be configured:
+
+kubectl get jobs one-off -o yaml | more
+
+ubuntu@ip-10-0-128-5:~$ kubectl get jobs one-off -o yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: "2019-06-25T07:27:35Z"
+  labels:
+    controller-uid: b3d5df7c-971a-11e9-8e4d-021be72f2fd4
+    job-name: one-off
+  name: one-off
+  namespace: jobs
+  resourceVersion: "7759"
+  selfLink: /apis/batch/v1/namespaces/jobs/jobs/one-off
+  uid: b3d5df7c-971a-11e9-8e4d-021be72f2fd4
+spec:
+  backoffLimit: 6
+  completions: 1
+  parallelism: 1
+  selector:
+    matchLabels:
+      controller-uid: b3d5df7c-971a-11e9-8e4d-021be72f2fd4
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        controller-uid: b3d5df7c-971a-11e9-8e4d-021be72f2fd4
+        job-name: one-off
+    spec:
+      containers:
+      - command:
+        - sleep
+        - "30"
+        image: alpine
+        imagePullPolicy: Always
+		name: one-off
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  completionTime: "2019-06-25T07:28:09Z"
+  conditions:
+  - lastProbeTime: "2019-06-25T07:28:09Z"
+    lastTransitionTime: "2019-06-25T07:28:09Z"
+    status: "True"
+    type: Complete
+  startTime: "2019-06-25T07:27:35Z"
+  succeeded: 1
+
+
+
+Some important fields to highlight are:
+
+backoffLimit: Number of times a Job will retry before marking a Job as failed
+completions: Number of Pod completions the Job needs before being considered a success
+parallelism: Number of Pods the Job is allowed to run in parallel
+spec.template.spec.restartPolicy: Job Pods default to never attempting to restart. Instead the Job is responsible for managing the restart of failed Pods.
+Also note the Job uses a selector to track its Pods.
+
+ 
+
+4. Use explain to see what other Job spec fields can be specified:
+
+kubectl explain job.spec | more
+alt
+
+The activeDeadlineSeconds and ttlSecondsAfterFinished are useful for automatically terminating and deleting Jobs.
+
+ 
+
+5. Create a Job that has a Pod that always fails:
+
+cat << 'EOF' > pod-fail.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pod-fail
+spec:
+  backoffLimit: 3
+  completions: 6
+  parallelism: 2
+  template:
+    spec:
+      containers:
+      - image: alpine
+        name: fail
+        command: ['sleep 20 && exit 1']
+      restartPolicy: Never
+EOF
+kubectl create -f pod-fail.yaml
+alt
+
+The Pod will always fail after sleeping for 10 seconds due to the exit 1 command (returning a non-zero exit code is treated as a failure). The Job allows for two Pods to run in parallel.
+
+ 
+
+6. Watch the describe output for the Job to see how the Job progresses:
+
+watch kubectl describe jobs pod-fail
+alt
+
+Notice the Pod Statuses shows 2 Running Pods and there is always 0 Succeeded. In the Events, you can see the job-controller automatically restarts Pods as prior Pods fail. Eventually, the following event appears indicating the backoff limit was exceeded, and the Job stops retrying:
+
+alt
+
+ 
+
+7. Press ctrl+c to stop watching the output.
+
+ 
+
+8. Get the Pods in the jobs namespace:
+
+kubectl get pods
+
+ubuntu@ip-10-0-128-5:~$ kubectl get pods
+NAME             READY   STATUS               RESTARTS   AGE
+one-off-n2cm5    0/1     Completed            0          7m31s
+pod-fail-2vsmf   0/1     ContainerCannotRun   0          2m36s
+pod-fail-j448m   0/1     ContainerCannotRun   0          2m39s
+pod-fail-mgfxg   0/1     ContainerCannotRun   0          2m39s
+pod-fail-p8kgp   0/1     ContainerCannotRun   0          2m6s
+pod-fail-pqtxg   0/1     ContainerCannotRun   0          2m26s
+pod-fail-rkl6c   0/1     ContainerCannotRun   0          2m6s
+pod-fail-txdzw   0/1     ContainerCannotRun   0          2m26s
+
+
+All of the Pods associated with the Jobs you ran are listed. The Pods will remain until you delete them or the Job associated with them. Setting a Job's ttlSecondsAfterFinished can free you from manually cleaning up the Pods.
+
+ 
+
+9. Create a CronJob that runs a Job every minute:
+
+cat << 'EOF' > cronjob-example.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cronjob-example
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: alpine
+            name: fail
+            command: ['date']
+          restartPolicy: Never
+EOF
+kubectl create -f cronjob-example.yaml
+alt
+
+The CronJob spec is mainly a schedule with a template for creating Jobs (jobTemplate). There are a few other fields though. For more information about CronJob fields, issue kubectl explain cronjob.spec. To learn more about the cron schedule syntax, see here.
+
+ 
+
+10. Observe the Events of the CronJob to confirm that it is creating Jobs every minute: 
+
+kubectl describe cronjob cronjob-example
+
+ubuntu@ip-10-0-128-5:~$ kubectl describe cronjob cronjob-example
+Name:                       cronjob-example
+Namespace:                  jobs
+Labels:                     <none>
+Annotations:                <none>
+Schedule:                   */1 * * * *
+Concurrency Policy:         Allow
+Suspend:                    False
+Starting Deadline Seconds:  <unset>
+Selector:                   <unset>
+Parallelism:                <unset>
+Completions:                <unset>
+Pod Template:
+  Labels:  <none>
+  Containers:
+   fail:
+    Image:      alpine
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      date
+    Environment:     <none>
+    Mounts:          <none>
+  Volumes:           <none>
+Last Schedule Time:  Tue, 25 Jun 2019 07:39:00 +0000
+Active Jobs:         <none>
+Events:
+  Type    Reason            Age   From                Message
+  ----    ------            ----  ----                -------
+  Normal  SuccessfulCreate  77s   cronjob-controller  Created job cronjob-example-1561448280
+  Normal  SawCompletedJob   67s   cronjob-controller  Saw completed job: cronjob-example-1561448280
+  Normal  SuccessfulCreate  17s   cronjob-controller  Created job cronjob-example-1561448340
+  Normal  SawCompletedJob   7s    cronjob-controller  Saw completed job: cronjob-example-1561448340
+  Normal  SuccessfulCreate  78s    cronjob-controller  Created job cronjob-example-1561448400
+  Normal  SawCompletedJob   68s    cronjob-controller  Saw completed job: cronjob-example-1561448400
+  Normal  SuccessfulCreate  18s    cronjob-controller  Created job cronjob-example-1561448460
+  Normal  SawCompletedJob   8s     cronjob-controller  Saw completed job: cronjob-example-1561448460
+  Normal  SuccessfulDelete  8s     cronjob-controller  Deleted job cronjob-example-1561448280
+
+
+ 
+
+Summary 
+In this Lab Step, you learned how Jobs and CronJobs can be used to manage Pod workloads that run to completion and, potentially, according to a schedule. A common pattern for Jobs is to use them in tandem with a Queue that has work items to process. For an example of this see the Kubernetes documentation.

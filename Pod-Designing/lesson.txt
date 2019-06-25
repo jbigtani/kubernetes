@@ -1,0 +1,813 @@
+Instructions
+1. Enter the following commands to secure copy the kubectl config from the master node using SSH agent forwarding, and enter yes when prompted about the host's authenticity:
+
+# Get the IP address of the Kubernetes master using the AWS CLI
+master_ip=$(aws ec2 describe-instances \
+  --region=us-west-2 \
+  --filters "Name=tag:Name,Values=k8s-master" \
+  --query "Reservations[0].Instances[0].PrivateIpAddress" \
+  --output text)
+# Securely copy the kubeonfig file
+scp -o "ForwardAgent yes" ubuntu@$master_ip:~/kubeconfig ~/.kube/config
+alt
+
+kubectl is now ready to use and will automatically use the configuration located in ~/.kube/config.
+
+Warningalt: If you receive an error message, the cluster may not be fully provisioned yet. Periodically re-issue the command every minute until it succeeds. You can check the EC2 Console's Instances view to see when all instances are in the running state.
+
+ 
+
+2. Load kubectl shell completions for your current shell session:
+
+source <(kubectl completion bash)
+With completions loaded, you can press tab to autocomplete or list available completions as you enter kubectl commands.
+
+ 
+
+3. Issue the following command to create a simple Pod manifest file:
+
+cat << 'EOF' > first-pod.yaml
+apiVersion: v1            # The API path for the Pod resource
+kind: Pod                 # The kind of resource (Pod)
+metadata:
+  name: first-pod         # Name of the Pod
+spec:
+  containers:             # List of containers in the Pod
+  - image: httpd:2.4.38   # Container image (using a tag to specify version 2.4.38) 
+    name: first-container # Name of the container
+EOF
+Read through the comments (following #). The manifest is minimal in the sense that all of the fields are required to create a Pod. For simplicity, some fields that you would usually define for an Apache web server (httpd), such as container port information, are omitted.
+
+ 
+
+4. Use the explain command to get an explanation of a Pod's spec (press space to page through the output):
+
+kubectl explain Pod.spec | more
+alt
+
+You can always get more details about a resource field by using the explain command. The pattern for the command is
+
+kubectl explain <Resource_Kind>.<Path_To_Field>
+where the <Resource_Kind> is the kind of resource and <Path_To_Field> is the path to the field joined by dots (.). For example, if you wanted to get information about the Pod's container's image field, you could enter 
+
+kubectl explain Pod.spec.containers.image
+ 
+
+5. Create the pod by entering:
+
+kubectl create -f first-pod.yaml
+alt
+
+ 
+
+6. Get a summary of the Pod resource by entering:
+
+kubectl get pod
+alt
+
+This command provides a summary of all Pods in the default namespace. Alternatively, you could get a summary for a specific Pod by providing its name as the last argument, e.g. kubectl get pod first-pod.
+
+The READY column indicates how many containers in the Pod are ready. The STATUS column displays Running when all containers have been created and at least one is still running. You can see this link to learn about the other possible status phases.
+
+ 
+
+7. To get all the fields of a resource, you can use the -o or --output option and specify yaml as the output type as in:
+
+kubectl get pod first-pod -o yaml | more
+
+ubuntu@ip-10-0-128-5:~$ kubectl get pod first-pod -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2019-06-25T06:21:13Z"
+  name: first-pod
+  namespace: default
+  resourceVersion: "1485"
+  selfLink: /api/v1/namespaces/default/pods/first-pod
+  uid: 6ea4b129-9711-11e9-8e4d-021be72f2fd4
+spec:
+  containers:
+  - image: httpd:2.4.38
+    imagePullPolicy: IfNotPresent
+    name: first-container
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-6wxpb
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: ip-10-0-12-224.us-west-2.compute.internal
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: default-token-6wxpb
+    secret:
+      defaultMode: 420
+      secretName: default-token-6wxpb
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:21:13Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:21:21Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:21:21Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:21:13Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://f93b057e3a3c442f8d273c56770cc9dc95a3b3a3ad82aef1ff5f806341fe47f3
+    image: httpd:2.4.38
+    imageID: docker-pullable://httpd@sha256:b51ab6354f4efc22015222183e75ac8447c6941c40c030fc7f27cf21c9a9a7f4
+    lastState: {}
+    name: first-container
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-06-25T06:21:20Z"
+  hostIP: 10.0.12.224
+  phase: Running
+  podIP: 192.168.165.193
+  qosClass: BestEffort
+  startTime: "2019-06-25T06:21:13Z"
+
+
+
+Kubernetes adds many more fields compared to the original manifest file. Many of them help Kubernetes manage the resources such as resourceVersion, selfLink, uid, and status. However, the fields in the spec are all available for your to declare in manifest files to configure your Pods. Take a moment to page through the output and see all of the Pod resource fields.
+
+ 
+
+8. Delete the Pod:
+
+kubectl delete pod first-pod
+You could alternatively specify the -f option to delete the Pod using the file that created it, e.g. kubectl delete -f first-pod.yaml.
+
+ ---Namespaces, selectors
+ 
+ # Create namespace
+kubectl create namespace labels
+
+ubuntu@ip-10-0-128-5:~$ kubectl get namespace labels -o yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2019-06-25T06:30:39Z"
+  name: labels
+  resourceVersion: "2272"
+  selfLink: /api/v1/namespaces/labels
+  uid: bfe9c92e-9712-11e9-8e4d-021be72f2fd4
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
+  
+ # Set namespace as the default for the current context
+kubectl config set-context $(kubectl config current-context) --namespace=labels
+
+It is a best practice to use namespaces to logically organize your Kubernetes resources. Namespaces identify resources more coarsely than labels and complement labels.
+
+ 
+
+2. Create four Pods declared in the following multi-resource manifest file (pod-labels.yaml):
+
+# Write the manifest file
+cat << 'EOF' > pod-labels.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: red-frontend
+  namespace: labels # ceclare namespace in metadata 
+  labels: # labels mapping in metadata
+    color: red
+    tier: frontend
+  annotations: # Example annotation
+    Lab: Kubernetes Pod Design for Application Developers
+spec:
+  containers:
+  - image: httpd:2.4.38
+    name: web-server
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: green-frontend
+  namespace: labels
+  labels:
+    color: green
+    tier: frontend
+spec:
+  containers:
+  - image: httpd:2.4.38
+    name: web-server
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: red-backend
+  namespace: labels
+  labels:
+    color: red
+    tier: backend
+spec:
+  containers:
+  - image: postgres:11.2-alpine
+    name: db
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: blue-backend
+  namespace: labels
+  labels:
+    color: blue
+    tier: backend
+spec:
+  containers:
+  - image: postgres:11.2-alpine
+    name: db
+EOF
+# Create the Pods
+kubectl create -f pod-labels.yaml
+alt
+
+Note that multiple resources are separated by --- in YAML manifest files. Each pod is declared in the labels namespace. Each Pod also has a labels mapping that declares a color and a tier label. Values for the color label span red, green, and blue. Values for the tier label span frontend and backend. The first Pod in the file, named red-frontend, also declares an annotations mapping.
+
+ 
+
+3. Use the -L (or --label-columns) kubectl get option to display columns for both labels:
+
+kubectl get pods -L color,tier
+alt
+
+The following instructions use label selectors to select a set of the Pods to display using kubectl.
+
+ 
+
+4. Use the -l (or --selector) option to select all Pods with a color label:
+
+kubectl get pods -L color,tier -l color
+alt
+
+Specifying only a label key as a selector will select all resources with that label defined. In this case, all Pods have a color label, so they are all selected for output.
+
+ 
+
+5. Select all Pods that do not have a color label:
+
+kubectl get pods -L color,tier -l '!color'
+alt
+
+You can prepend an exclamation mark (!) to select resources without a label defined. The single quotes (') must enclose the selector to prevent the bash shell from interpreting the exclamation mark. You can always enclose your selectors in single quotes to avoid any unexpected consequences of the shell interpreter.
+
+ 
+
+6. Select all Pods that have the color red:
+
+kubectl get pods -L color,tier -l 'color=red'
+alt
+
+You can select a key and value by joining the key and value with an equal sign (=) or two equal signs (==).
+
+ 
+
+7. Select all Pods that have the color red and are not in frontend tier:
+
+kubectl get pods -L color,tier -l 'color=red,tier!=frontend'
+alt
+
+First, note that multiple conditions are joined by commas (,). Second, the != symbol means not equals. For not equals conditions, the given label key must exist. For example, Pods without any tier label would not be selected by the command above.
+
+ 
+
+8. Select all Pods with green or blue color:
+
+kubectl get pods -L color,tier -l 'color in (blue,green)'
+alt
+
+The in condition allows you to specify the allowed values in parentheses. There is also a notin condition that allows you to specify disallowed values.
+ubuntu@ip-10-0-128-5:~$ kubectl get pods -L color,tier -l 'color notin (blue,green)'
+NAME           READY   STATUS    RESTARTS   AGE    COLOR   TIER
+red-backend    1/1     Running   0          6m8s   red     backend
+red-frontend   1/1     Running   0          6m8s   red     frontend
+
+ 
+
+9. Use the describe command to display the annotation for the red-frontend Pod:
+
+kubectl describe pod red-frontend | grep Annotations
+
+ubuntu@ip-10-0-128-5:~$ kubectl describe pod red-frontend
+Name:               red-frontend
+Namespace:          labels
+Priority:           0
+PriorityClassName:  <none>
+Node:               ip-10-0-4-132.us-west-2.compute.internal/10.0.4.132
+Start Time:         Tue, 25 Jun 2019 06:36:25 +0000
+Labels:             color=red
+                    tier=frontend
+Annotations:        Lab: Kubernetes Pod Design for Application Developers
+Status:             Running
+IP:                 192.168.201.1
+Containers:
+  web-server:
+    Container ID:   docker://11c99be23f32f56a86dba7704ebeadd48ac260399a3c5ac00f291c1f90787d88
+    Image:          httpd:2.4.38
+    Image ID:       docker-pullable://httpd@sha256:b51ab6354f4efc22015222183e75ac8447c6941c40c030fc7f27cf21c9a9a7f4
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Tue, 25 Jun 2019 06:36:37 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-zcx7d (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  default-token-zcx7d:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-zcx7d
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+
+				 Events:
+  Type    Reason     Age    From                                               Message
+  ----    ------     ----   ----                                               -------
+  Normal  Scheduled  9m23s  default-scheduler                                  Successfully assigned labels/red-frontend to ip-10-0-4-132.us-west-2.compute.internal
+  Normal  Pulling    9m21s  kubelet, ip-10-0-4-132.us-west-2.compute.internal  pulling image "httpd:2.4.38"
+  Normal  Pulled     9m12s  kubelet, ip-10-0-4-132.us-west-2.compute.internal  Successfully pulled image "httpd:2.4.38"
+  Normal  Created    9m12s  kubelet, ip-10-0-4-132.us-west-2.compute.internal  Created container
+  Normal  Started    9m11s  kubelet, ip-10-0-4-132.us-west-2.compute.internal  Started container
+
+
+The describe command is a convenient way to display annotations. You can also set the output option (-o) of get to yaml to view all the fields of resources, including annotations, e.g. kubectl get pod red-frontend -o yaml.
+
+ 
+ ubuntu@ip-10-0-128-5:~$ kubectl get pod red-frontend -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    Lab: Kubernetes Pod Design for Application Developers
+  creationTimestamp: "2019-06-25T06:36:25Z"
+  labels:
+    color: red
+    tier: frontend
+  name: red-frontend
+  namespace: labels
+  resourceVersion: "2812"
+  selfLink: /api/v1/namespaces/labels/pods/red-frontend
+  uid: 8dca069a-9713-11e9-8e4d-021be72f2fd4
+spec:
+  containers:
+  - image: httpd:2.4.38
+    imagePullPolicy: IfNotPresent
+    name: web-server
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-zcx7d
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: ip-10-0-4-132.us-west-2.compute.internal
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: default-token-zcx7d
+    secret:
+      defaultMode: 420
+      secretName: default-token-zcx7d
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:36:25Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:36:38Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:36:38Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2019-06-25T06:36:25Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://11c99be23f32f56a86dba7704ebeadd48ac260399a3c5ac00f291c1f90787d88
+    image: httpd:2.4.38
+    imageID: docker-pullable://httpd@sha256:b51ab6354f4efc22015222183e75ac8447c6941c40c030fc7f27cf21c9a9a7f4
+    lastState: {}
+    name: web-server
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-06-25T06:36:37Z"
+  hostIP: 10.0.4.132
+  phase: Running
+  podIP: 192.168.201.1
+  qosClass: BestEffort
+  startTime: "2019-06-25T06:36:25Z"
+
+
+10. Remove the Pod's annotation and verify it no longer has an annotation:
+
+kubectl annotate pod red-frontend Lab- 
+kubectl describe pod red-frontend | grep Annotations
+
+
+The annotate command can be used to add/remove/update annotations. You add a dash (-) after the annotation key to remove the annotation. You can do the same with the kubectl label command when you need to remove a label.
+
+ 
+
+11. Review the Examples in the annotate help:
+
+kubectl annotate --help
+
+ubuntu@ip-10-0-128-5:~$ kubectl annotate -h
+Update the annotations on one or more resources
+
+All Kubernetes objects support the ability to store additional data with the object as annotations. Annotations are
+key/value pairs that can be larger than labels and include arbitrary string values such as structured JSON. Tools and
+system extensions may use annotations to store their own data.
+
+Attempting to set an annotation that already exists will fail unless --overwrite is set. If --resource-version is
+specified and does not match the current resource version on the server the command will fail.
+
+Use "kubectl api-resources" for a complete list of supported resources.
+
+Examples:
+  # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  # If the same annotation is set multiple times, only the last value will be applied
+  kubectl annotate pods foo description='my frontend'
+
+  # Update a pod identified by type and name in "pod.json"
+  kubectl annotate -f pod.json description='my frontend'
+
+  # Update pod 'foo' with the annotation 'description' and the value 'my frontend running nginx', overwriting any
+existing value.
+  kubectl annotate --overwrite pods foo description='my frontend running nginx'
+
+  # Update all pods in the namespace
+  kubectl annotate pods --all description='my frontend running nginx'
+
+  # Update pod 'foo' only if the resource is unchanged from version 1.
+  kubectl annotate pods foo description='my frontend running nginx' --resource-version=1
+
+  # Update pod 'foo' by removing an annotation named 'description' if it exists.
+  # Does not require the --overwrite flag.
+  kubectl annotate pods foo description-
+
+Options:
+      --all=false: Select all resources, including uninitialized ones, in the namespace of the specified resource types.
+      --allow-missing-template-keys=true: If true, ignore any errors in templates when a field or map key is missing in
+the template. Only applies to golang and jsonpath output formats.
+      --dry-run=false: If true, only print the object that would be sent, without sending it.
+      --field-selector='': Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector
+key1=value1,key2=value2). The server only supports a limited number of field queries per type.
+  -f, --filename=[]: Filename, directory, or URL to files identifying the resource to update the annotation
+
+ 
+
+12. Review the Examples in the label help:
+
+kubectl label --help
+alt
+
+The annotate and label commands are analogous. As the differences in the examples highlight, annotations have less restrictions on their values. For example, label values cannot have spaces. 
+
+ 
+
+13. Delete the Pods:
+
+kubectl delete -f pod-labels.yaml
+alt
+
+ 
+
+Summary 
+In this Lab Step, you learned the differences between labels and annotations in Kubernetes. You also learned how selectors are used to select sets of resources by writing label conditions. Selectors are helpful for filtering output using kubectl. You will see later how Kubernetes itself uses selectors. 
+
+Managing Pods with Deployments
+
+Introduction
+Effectively using Pods requires higher-level abstractions. For example. something to control multiple Pods as a single unit to facilitate high availability and fault tolerance if a Kubernetes worker node were to go offline. Kubernetes Deployments are one such higher-level resource that can manage Pods. Some key traits of Deployments are:
+
+Declare a desired state for your Pods, and Deployments will do the work to bring your cluster to the desired state
+Configurable rolling update behavior to control how many Pods in a Deployment are updated 
+State tracking to facilitate rolling back to previous versions
+A Deployment controller constantly monitors the desired state of the Deployment and the state of the Kubernetes cluster, and reconciles the cluster state with the desired state you provide the Deployment. These benefits are why you rarely want to deploy individual Pod resources.
+
+In this Lab Step, you will create a deployment for a web server and perform rolling updates and roll backs to understand the key features of Kubernetes Deployments.
+
+ 
+
+Instructions
+1. Create a Namespace for the resources you will create in this Lab Step, and change your default kubectl context to use the Namespace:
+
+# Create namespace
+kubectl create namespace deployments
+# Set namespace as the default for the current context
+kubectl config set-context $(kubectl config current-context) --namespace=deployments
+alt
+
+alt
+
+ 
+
+2. Use the kubectl create command to generate a Deployment manifest for you:
+
+kubectl create deployment --image=httpd:2.4.38 web-server --dry-run -o yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: web-server
+  name: web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: web-server
+    spec:
+      containers:
+      - image: httpd:2.4.38
+        name: httpd
+        resources: {}
+status: {}
+
+
+The deployment subcommand of kubectl create can create Deployments for you without requiring a manifest file. With the --dry-run option it will not actually create the Deployment, which when used with -o yaml allows you to generate equivalent manifest files that you could use with kubectl create -f. This makes it easy to create a manifest without remembering the exact fields and syntax.
+
+There are a few points to highlight at this stage:
+
+The Deployment spec includes:
+replicas that let you specify how many copies of the Pod you want the Deployment to create
+selector, which is a Pod label selector that allows the Deployment controller to track the status of all the Pods in the Deployment. This is one example of how Kubernetes uses selectors. The matchLabels mapping defines an equality condition similar to how you would write app=web-server using kubectl. For more information about the Deployment selector issue kubectl explain deployment.spec.selector.
+template is a template for the Pods that will be created. The template provides the desired behavior of each Pod and is essentially the same as an individual Pod manifest. Notice the label that the Deployment selector uses is applied to the Pod (app: web-server). This is required for the Deployment to track its Pods.
+The output of the --dry-run command is not a minimal Deployment manifest because it includes unnecessary fields such as status, and creationTimestamp. However, those fields are harmless to include in a manifest file.
+ 
+
+3. Run the previous command without the dry run to actually create the Deployment:
+
+kubectl create deployment --image=httpd:2.4.38 web-server
+
+
+You can also create a manifest file (and edit it as you need), and create the Deployment using kubectl create -f.
+
+ 
+
+4. Describe the Deployment to get details about the Deployment and its Pods:
+
+kubectl describe deployments web-server
+
+ubuntu@ip-10-0-128-5:~$ kubectl describe deployment web-server
+Name:                   web-server
+Namespace:              deployments
+CreationTimestamp:      Tue, 25 Jun 2019 07:05:56 +0000
+Labels:                 app=web-server
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               app=web-server
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=web-server
+  Containers:
+   httpd:
+    Image:        httpd:2.4.38
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   web-server-744cc5586b (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  78s   deployment-controller  Scaled up replica set web-server-744cc5586b to 1
+
+
+Read through the output. There are some points to highlight:
+
+The StrategyType is RollingUpdate, which means when you specify a new desired state for the Deployment's Pods, the update will be incrementally rolled out to all of the Pods. The next note explains how quickly updates are allowed to rollout.
+RollingUpdateStrategy has two parameters to control rolling updates by creating an upper bound and lower bound on the total number of Pods in the Deployment (for additional information issue kubectl explain deployments.spec.strategy.rollingUpdate):
+max unavailable: The maximum number of Pods that can be unavailable during the update.
+max surge: The maximum number of Pods that can be scheduled above the desired number of Pods.
+There are several references to ReplicaSet. A ReplicaSet is a Kubernetes resource that can manage identical copies of Pods. Deployments use ReplicaSets for each version of the Deployment's desired state. You do not really need to know about the ReplicaSets since the Deployment abstracts away the complexity for you.
+ 
+
+5. Confirm that there is one Pod running, which matches the desired state for the number of replicas:
+
+kubectl get pods
+alt
+
+Notice the Pod name begins with the name of the Deployment.
+
+ 
+
+6. Scale up the number of replicas in the Deployment to six (6):
+
+kubectl scale deployment web-server --replicas=6
+alt 
+
+ 
+
+7. Confirm that there are now six (6) Pods running:
+
+kubectl get pods
+alt
+
+One Pod is older than the others. A new version of Pod is not rolled out, so the original Pod does not need to be deleted when scaling up. You will observe this in the next instruction.
+
+ 
+
+8. View the Deployment's rollout history to confirm only one revision exists:
+
+kubectl rollout history deployment web-server
+alt
+
+Only REVISION 1 exists, which refers to the original Pod spec that was deployed. The history will accumulate more revisions as you rollout updates. When you need to rollback to an earlier revision, you can find the revision number to rollback to from the history.
+
+ 
+
+9. Use the edit command to open an editor to edit the Deployment:
+
+kubectl edit deployment web-server --record
+The edit command allows you to do the equivalent of saving the manifest file, editing the file, and then applying the changes. The default editor is vim. If you do not know how to use vim, this Lab will tell you everything you need to know. However, if you are planning on taking a Kubernetes certification exam, you should practice using a command-line text editor. You can enter vimtutor to learn and practice vim. The --record option will record the command as an annotation in the resource to help understand what caused the change.
+
+ 
+
+10. Perform the following actions to update the deployment so that the Pods' containers' open port 80:
+
+Use your arrow keys to move the cursor down to the line with the image: httpd:2.4.38 (You can also search for that line by entering front slash (/) followed by image.)
+Press o to add a new line below
+Type ports: at the same indentation level as image: (press space to move the cursor to the right) 
+Press enter to move to another new line and type - containerPort: 80 at the same level of indentation as the previous line
+The result should look like the following:
+alt
+
+ 
+
+11. Press escape (this will remove the ---INSERT--- message at the bottom of the window) and type :wq followed by enter to save (write, quit) the file.
+
+alt
+
+A new desired state is created for the Pods. This in turn kicks off a rolling update for the Pods.
+
+ 
+
+12. Confirm the rollout was successful:
+
+kubectl rollout status deployment web-server
+alt
+
+ 
+
+13. View the rollout history and observe the CHANGE-CAUSE column displays the command you issued to edit the Deployment:
+
+kubectl rollout history deployment web-server
+alt
+
+The command is saved in an annotation of the Deployment.
+
+ 
+
+14. Set the Pods' container image to httpd:2.4.38-alpine: 
+
+kubectl set image deployment web-server httpd=httpd:2.4.38-alpine --record
+alt
+
+You can always edit the manifest, but the set command offers an easy way to change the image.
+
+ 
+
+15. View the latest events for the Deployment:
+
+kubectl describe deployments web-server
+
+Events:
+  Type    Reason             Age                   From                   Message
+  ----    ------             ----                  ----                   -------
+  Normal  ScalingReplicaSet  10m                   deployment-controller  Scaled up replica set web-server-744cc5586b to 1
+  Normal  ScalingReplicaSet  7m11s                 deployment-controller  Scaled up replica set web-server-744cc5586b to 6
+  Normal  ScalingReplicaSet  3m26s                 deployment-controller  Scaled up replica set web-server-f67676bb5 to 2
+  Normal  ScalingReplicaSet  3m26s                 deployment-controller  Scaled down replica set web-server-744cc5586b to 5
+  Normal  ScalingReplicaSet  3m26s                 deployment-controller  Scaled up replica set web-server-f67676bb5 to 3
+  Normal  ScalingReplicaSet  3m24s                 deployment-controller  Scaled down replica set web-server-744cc5586b to 4
+  Normal  ScalingReplicaSet  3m24s                 deployment-controller  Scaled up replica set web-server-f67676bb5 to 4
+  Normal  ScalingReplicaSet  3m23s                 deployment-controller  Scaled down replica set web-server-744cc5586b to 3
+  Normal  ScalingReplicaSet  3m23s                 deployment-controller  Scaled up replica set web-server-f67676bb5 to 5
+  Normal  ScalingReplicaSet  33s (x15 over 3m23s)  deployment-controller  (combined from similar events): Scaled down replica set web-server-f67676bb5 to 0
+
+
+The events of a Resource are always a good first place to check if you suspect something has gone wrong. In this case, everything is working as expected. The way the rolling update works is that a new ReplicaSet is created to make Pods according to the new spec/desired state. The number of replicas (Pods) for the new ReplicaSet is incremented, respecting the rolling update max surge value on the Deployment. As new Pods reach the running state, the old ReplicaSet has its number of replicas decremented, always respecting the rolling update max unavailable value. The events show how one ReplicaSet is incrementing while the other is decrementing. 
+
+ 
+
+16. Rollback the previous change:
+
+kubectl rollout undo deployment web-server
+alt
+
+The undo subcommand will rollback to the most previous revision. If you need to rollback to an even earlier version you can use the --to-revision option and set its value to the revision number, which can be obtained from the history.
+
+ 
+
+17. Expose the web server Deployment to the internet by creating a Service of type LoadBalancer:
+
+kubectl expose deployment web-server --type=LoadBalancer
+Services provide a single endpoint for communicating with a set of Pods. Services also use label selectors to define the set of Pods. Although this Lab Step focuses on Deployments, it is common to have a Service to provide an endpoint for accessing the Pods in a Deployment. The load balancer type of Service allows communication with clients outside of the Kubernetes cluster. The ClusterIP and NodePort Service types are useful for accessing a set of Pods only within a cluster.
+
+ 
+
+18. Watch the output of get services until the EXTERNAL-IP column has a DNS address:
+
+watch kubectl get services
+alt
+
+ 
+
+19. Copy the DNS address in the External-IP column and press ctrl+c to quit watching the output.
+
+ 
+
+20. Navigate to the DNS address in a new browser tab to confirm the Service has exposed the Deployment over the Internet: 
+
+alt
+
+Note: If the page does not initially load, you may need to wait a minute or two until the load balancer completes its health checks and starts serving traffic to the Pods. Refresh the page every minute until the page loads.
+
+ 
+
+Summary 
+In this Lab Step, you learned how to use Deployments to manage your Pods. Deployments have built-in functionality for several common operations, such as rolling out a new version and rolling back to a previous version. A Deployment controller continuously monitors the desired state and the actual state of the Pods in the cluster. It automatically performs actions to bring the actual state to the desired state.
