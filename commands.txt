@@ -1,6 +1,30 @@
+
+--lesson205 (secret and config-map)
+kubectl create -f namespace-lesson205.yml
+kubectl create secret generic api-keys --from-literal=key1=placeholder1 --from-literal=key2=placeholder2 --namespace lesson205
+kubectl create -f podWithSecret.yml --namespace lesson205
+kubectl exec example --namespace lesson205 -- env | grep API_KEY
+kubectl create -f config-map.yml
+kubectl get configmap -n lesson205
+kubectl exec example -n lesson205 -- env | sort
+kubectl delete pod example --namespace lesson205
+doskey /history
+
+--lesson204 (PersistentVolume)
+
+kubectl get pods --namespace lesson204
+kubectl create -f namespace-lesson204.yml
+kubectl create -f data-tier-volume.yml --namespace lesson204
+kubectl create -f data-tier-deployment.yml --namespace lesson204
+kubectl get pods --namespace lesson204
+kubectl exec example-data-tier-5fc698df54-n4g62 -it --namespace lesson204 -- redis-cli set foo bar
+kubectl exec example-data-tier-5fc698df54-n4g62 -it --namespace lesson204 -- redis-cli get foo
+kubectl delete pod example-data-tier-5fc698df54-n4g62 --namespace lesson204
+kubectl exec example-data-tier-5fc698df54-c978z -it --namespace lesson204 -- redis-cli get foo
+
 --lesson203
-
-
+kubectl describe deployments --namespace lesson203
+kubectl describe pods --namespace lesson203
 kubectl create -f namespace-lesson203.yml
 kubectl create -f data-tier-service.yml --namespace lesson203
 kubectl create -f data-tier-deployment.yml --namespace lesson203
@@ -45,3 +69,17 @@ minikube status
 minikube start
 minikube stop
 
+Production Practices: Services and Ingress
+Load Balancer Type
+Whitelist IPs
+Service Discovery (kube-dns)
+Ingress
+
+Pods
+set the restartPolicy
+Set the resource requests and Limits
+
+Resource Types
+DaeomonSet
+StatefulSet
+Job and CronJob
