@@ -1,0 +1,180 @@
+Introduction
+A security context allows you to set access control for Pods, as well as containers and volumes in Pods, when applicable. Examples of access controls that can be set with security contexts include:
+
+The user ID and group IDs of the first process running in a container
+The group ID of volumes
+If a container's root file system is read-only
+Security Enhanced Linux (SELinux) options
+The privileged status of containers, which allows the container to do almost everything root can do on the host, if enabled
+Whether or not privilege escalation, where child processes can have more privileges than their parent, is allowed
+When a security context field is configured for a Pod and one of the Pod's containers, the container's setting takes precedence. Configuring the security context of Pods and containers can greatly reduce the security risk posed by using third-party images.
+
+In this Lab Step, you will review the available options for configuring security contexts. You will then create multiple Pods with differing security contexts to observer the effects of each.
+
+ 
+
+Instructions
+1. Explain the available Pod-level security context fields:
+
+kubectl explain pod.spec.securityContext
+alt
+
+Briefly read through each of the fields to get an understanding of what each can be used for.
+
+ 
+
+2. Explain the available container-level security context fields:
+
+kubectl explain pod.spec.containers.securityContext
+alt
+
+Briefly read through each of the fields to get an understanding of what each can be used for.
+
+ 
+
+3. Create the following Pod manifest file:
+
+cat << EOF > pod-no-security-context.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-test-1
+spec:
+  containers:
+  - image: busybox:1.30.1
+    name: busybox
+    args:
+    - sleep
+    - "3600"
+EOF
+The pod simply runs a container that sleeps.
+
+ 
+
+4. Create the Pod and use exec to list the available devices in the container:
+
+kubectl create -f pod-no-security-context.yaml
+kubectl exec security-context-test-1 -it -- ls /dev
+alt
+
+There are only a minimal number of devices available in the container and none that can do any harm. For the sake of what you will do next, notice there are no block devices. In particular, there is no nvme0n1p1 device that is the host's file system disk.
+
+ 
+
+5. Delete the previous Pod and create a similar Pod that has a privileged container:
+
+kubectl delete -f pod-no-security-context.yaml
+
+cat > pod-privileged.yaml <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-test-2
+spec:
+  containers:
+  - image: busybox:1.30.1
+    name: busybox
+    args:
+    - sleep
+    - "3600"
+    securityContext:
+      privileged: true
+EOF
+
+kubectl create -f pod-privileged.yaml
+Note the securityContext field included in the spec.
+
+ 
+
+6. List the devices available in the container:
+
+kubectl exec security-context-test-2 -it -- ls /dev
+alt
+
+Error from server (NotFound): pods "security-context-test-3" not found
+ubuntu@ip-10-0-128-5:~$ kubectl exec security-context-test-2 -it -- /bin/sh
+/ # ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 sleep 3600
+   17 root      0:00 /bin/sh
+   22 root      0:00 ps
+
+All of the host devices are available including the host file system disk nvme0n1p1. This could be a major security breach and shows the importance of carefully considering if you should ever use a privileged container.
+
+ 
+
+ 
+
+8. Create another pod that includes a Pod security context as well as a container security context:
+
+kubectl delete -f pod-privileged.yaml
+
+cat << EOF > pod-runas.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-test-3
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+  containers:
+  - image: busybox:1.30.1
+    name: busybox
+    args:
+    - sleep
+    - "3600"
+    securityContext:
+      runAsUser: 2000
+      readOnlyRootFilesystem: true
+EOF
+
+kubectl create -f pod-runas.yaml
+The Pod security context enforces that container processes do not run as root (runAsNonRoot) and sets the user ID of the container process to 1000. The container securityContext sets the container process' user ID to 2000 and sets the root file system to read-only.
+
+ 
+
+9. Open a shell in the container:
+
+kubectl exec security-context-test-3 -it -- /bin/sh
+alt
+
+Notice that the shell prompt is $ and not # indicating that you are not the root user.
+
+ 
+
+10. List the running processes in the container:
+
+ps
+
+ubuntu@ip-10-0-128-5:~$ kubectl exec security-context-test-3 -it -- /bin/sh
+/ $ ps
+PID   USER     TIME  COMMAND
+    1 2000      0:00 sleep 3600
+    7 2000      0:00 /bin/sh
+   12 2000      0:00 ps
+
+The USER ID is 2000 illustrating that it is not root and that the container security context overrides the setting in the Pod security context when both security contexts include the same field. Whenever possible you should not run as root.
+
+ 
+
+11. Attempt to create a file in the /tmp directory:
+
+touch /tmp/test-file
+exit
+
+/ $ touch /tmp/test-file
+touch: /tmp/test-file: Read-only file system
+
+The attempt fails due to the Read-only file system. When possible, it is best to use read-only root file systems to harden your container environments. A best practice is to use volumes to mount any files that require modification, allowing the root file system to be read-only.
+
+ 
+
+12. Delete the pod resource:
+
+kubectl delete -f pod-runas.yaml
+ 
+
+Summary
+In this Lab Step, you understood the use and capabilities of Pod and container security contexts. You also learned about potential risks and how to protect your cluster from them.

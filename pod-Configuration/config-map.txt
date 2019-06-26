@@ -1,0 +1,145 @@
+Configuring Pods using Data Stored in ConfigMaps
+
+Introduction
+ConfigMaps are a type of Kubernetes Resource that is used to decouple configuration artifacts from container image content to keep containerized applications portable. The configuration data is stored as key-value pairs. One ConfigMap may contain one or more key-value pairs. With kubectl, ConfigMaps can be created from:
+
+Environment variable files consisting of key-value pairs separated by equal signs, e.g. key=value. The file should have one key-value pair per line.
+Regular files or directories of files which results in keys that are the names of the files and values that are the contents of the files.
+Literals consisting of individual key-value pairs that you specify on the command line.
+Writing a YAML manifest file of kind: ConfigMap.
+ConfigMaps can be mounted into containers as volumes or as environment variables. Like most Kubernetes Resources, ConfigMaps are namespaced so only Pods in the same Namespace as a ConfigMap can use the ConfigMap.
+
+In this Lab Step, you will see an example of how to create a ConfigMap from a literal key-value pair and mount the configuration data into a Pod using a volume.
+
+ 
+
+Instructions
+1. Create a Namespace for the resources you'll create in this Lab Step and change your default kubectl context to use the Namespace:
+
+# Create namespace
+kubectl create namespace configmaps
+# Set namespace as the default for the current context
+kubectl config set-context $(kubectl config current-context) --namespace=configmaps
+ 
+
+2. Create a ConfigMap from two literal key-value pairs:
+
+kubectl create configmap app-config --from-literal=DB_NAME=testdb \
+  --from-literal=COLLECTION_NAME=messages
+The command creates one ConfigMap named app-settings with two key-value pairs, DB_NAME=testdb and COLLECTION_NAME=messages. 
+
+ 
+
+3. Display the ConfigMap:
+
+kubectl get configmaps app-config -o yaml
+
+ubuntu@ip-10-0-128-5:~$ kubectl get configmaps app-config -o yaml
+apiVersion: v1
+data:
+  COLLECTION_NAME: messages
+  DB_NAME: testdb
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2019-06-26T10:07:52Z"
+  name: app-config
+  namespace: configmaps
+  resourceVersion: "7143"
+  selfLink: /api/v1/namespaces/configmaps/configmaps/app-config
+  uid: 424cdb28-97fa-11e9-829a-06d8e9a9bce4
+
+
+This is also how you would declare an equivalent ConfigMap using a manifest file passed to kubectl create -f. 
+
+ 
+
+4. Create a Pod that mounts the ConfigMap using a volume:
+
+cat << 'EOF' > pod-configmap.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db 
+spec:
+  containers:
+  - image: mongo:4.0.6
+    name: mongodb
+    # Mount as volume 
+    volumeMounts:
+    - name: config
+      mountPath: /config
+    ports:
+    - containerPort: 27017
+      protocol: TCP
+  volumes:
+  - name: config
+    # Declare the configMap to use for the volume
+    configMap:
+      name: app-config
+EOF
+kubectl create -f pod-configmap.yaml
+The volume uses the configMap key to create a volume using a ConfigMap.
+
+ 
+
+5. List the /config directory, where the ConfigMap volume is mounted, in the container:
+
+kubectl exec db -it -- ls /config
+alt
+
+The two ConfigMap keys are listed as files.
+
+ 
+
+6. Get the contents of the DB_NAME file
+
+kubectl exec db -it -- cat /config/DB_NAME && echo
+alt
+
+The file content is the value of the corresponding ConfigMap key-value pair. The && echo is added simply to put the shell prompt onto a new line.
+
+ 
+
+7. View more examples of creating ConfigMaps by entering:
+
+kubectl create configmap --help
+
+Examples:
+  # Create a new configmap named my-config based on folder bar
+  kubectl create configmap my-config --from-file=path/to/bar
+
+  # Create a new configmap named my-config with specified keys instead of file basenames on disk
+  kubectl create configmap my-config --from-file=key1=/path/to/bar/file1.txt --from-file=key2=/path/to/bar/file2.txt
+
+  # Create a new configmap named my-config with key1=config1 and key2=config2
+  kubectl create configmap my-config --from-literal=key1=config1 --from-literal=key2=config2
+
+  # Create a new configmap named my-config from the key=value pairs in the file
+  kubectl create configmap my-config --from-file=path/to/bar
+
+  # Create a new configmap named my-config from an env file
+  kubectl create configmap my-config --from-env-file=path/to/bar.env
+
+  You practiced using volumes to access ConfigMaps in Pods. To use a ConfigMap via Pod environment variables, you set the following field pod.spec.containers.envFrom.configMapRef (issue kubectl explain pod.spec.containers.envFrom.configMapRef for more details)
+  
+  
+ ubuntu@ip-10-0-128-5:~$ kubectl explain pod.spec.containers.envFrom.configMapRef
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: configMapRef <Object>
+
+DESCRIPTION:
+     The ConfigMap to select from
+
+     ConfigMapEnvSource selects a ConfigMap to populate the environment
+     variables with. The contents of the target ConfigMap's Data field will
+     represent the key-value pairs as environment variables.
+
+FIELDS:
+   name <string>
+     Name of the referent. More info:
+     https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+
+   optional     <boolean>
+     Specify whether the ConfigMap must be defined
