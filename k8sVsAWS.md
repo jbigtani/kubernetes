@@ -1,4 +1,19 @@
 
+| Kubernetes  |  AWS |   |   |   |
+|---|---|---|---|---|
+| Cluster  |  VPC |   |   |   |
+|  Node |   |   |   |   |
+| Pod  | EC2  |   |   |   |
+| Container  |  VPC |   |   |   |
+|  Deployment |   |   |   |   |
+| HPA  | EC2  |   |   |   |
+| Cluster  |  VPC |   |   |   |
+|  Node |   |   |   |   |
+| Pod  | EC2  |   |   |   |
+| Container  |  VPC |   |   |   |
+|  Deployment |   |   |   |   |
+| HPA  | EC2  |   |   |   |
+
 | Kubertenes | AWS |
 | Cluster     | VPC |
 | Node        |     |
