@@ -12,3 +12,7 @@ https://www.katacoda.com/courses/kubernetes/networking-introduction
 https://www.katacoda.com/courses/kubernetes/storage-introduction
 https://www.katacoda.com/courses/kubernetes/liveness-readiness-healthchecks
 https://www.katacoda.com/courses/kubernetes/managing-secrets
+
+
+### Practice here instead of locally installed minikube.
+https://www.katacoda.com/courses/kubernetes/playground
