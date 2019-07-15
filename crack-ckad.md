@@ -1,3 +1,16 @@
+# Crack CKAD in four weeks
+Ihave prepared this course based on my own Kubernetes certification that I completed in four week. 
+
+### Pre-requisities
+
+### Week 1
+
+### Week 2
+
+### Week 3
+
+
+### Week 4
 
 ### Topics
 
