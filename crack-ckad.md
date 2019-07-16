@@ -31,4 +31,4 @@ https://www.katacoda.com/courses/kubernetes/managing-secrets
 https://www.katacoda.com/courses/kubernetes/playground
 
 ### Revision - Concepts
-https://courses.edx.org/courses/course-v1:LinuxFoundationX+LFS158x+2T2019/course/
+https://courses.edx.org/courses/course-v1:LinuxFoundationX+LFS158x+2T2019/course/   -- Chapter 8 to Chapter 13
