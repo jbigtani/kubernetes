@@ -14,5 +14,8 @@
 |  Expose | External Load Balancer  |   |   |   |
 | namespace | | | |
 | Job  | AWS Batch  |   |   |   |
-| Network Polocy| | | |
+| Network Policy| NACl/ SG | | |
 | Service Account | IAM | | | 
+| Resource yaml | Cloud Formation ||||
+| Dashboard | AWS Console | |||
+| kubectl | aws-cli ||||
